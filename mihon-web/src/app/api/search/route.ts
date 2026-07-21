@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEnabledSources } from "@/lib/sources/registry";
+import { getEnabledSources, getSource } from "@/lib/sources/registry";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("q") || "";
   const page = parseInt(searchParams.get("page") || "1");
+  const sourceId = searchParams.get("source");
 
   if (!query) {
     return NextResponse.json({ error: "Query required" }, { status: 400 });
   }
 
-  const sources = getEnabledSources();
+  let sources = getEnabledSources();
+
+  if (sourceId) {
+    const source = getSource(sourceId);
+    sources = source ? [source] : [];
+  }
+
   const results = await Promise.all(
     sources.map(async (source) => {
       try {
