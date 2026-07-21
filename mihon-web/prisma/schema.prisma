@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,63 @@ generator client {
 
 datasource db {
   provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  library   Library[]
+  history   ReadingHistory[]
+  settings  UserSettings?
+  createdAt DateTime @default(now())
+}
+
+model Library {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  mangaId    String
+  sourceId   String
+  title      String
+  cover      String?
+  status     String?
+  categories String
+  addedAt    DateTime @default(now())
+  @@unique([userId, mangaId, sourceId])
+}
+
+model ReadingHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  mangaId    String
+  sourceId   String
+  chapterId  String
+  chapterNum Float?
+  readAt     DateTime @default(now())
+  progress   Float?
+  @@unique([userId, mangaId, chapterId])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  mangaId   String
+  sourceId  String
+  chapterId String
+  number    Float?
+  title     String?
+  pages     String
+  @@unique([mangaId, sourceId, chapterId])
+}
+
+model UserSettings {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id])
+  theme          String  @default("system")
+  readerMode     String  @default("page")
+  readingDir     String  @default("rtl")
+  bgColor        String  @default("#ffffff")
+  brightness     Float   @default(1.0)
+  enabledSources String
 }
