@@ -1,6 +1,7 @@
 import { SourceAdapter } from "./types";
 import { MangaDexSource } from "./mangadex";
 import { MangaSeeSource } from "./mangasee";
+import { MangaKakalotScraper, MangaNatoScraper, AsuraScansScraper, ComickScraper, MangaFireScraper } from "./scrapers";
 
 const sources: Map<string, SourceAdapter> = new Map();
 
@@ -23,3 +24,8 @@ export function getEnabledSources(): SourceAdapter[] {
 // Initialize built-in sources
 registerSource(new MangaDexSource());
 registerSource(new MangaSeeSource());
+registerSource(new MangaKakalotScraper());
+registerSource(new MangaNatoScraper());
+registerSource(new AsuraScansScraper());
+registerSource(new ComickScraper());
+registerSource(new MangaFireScraper());
