@@ -21,5 +21,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json(websites);
+  // Convert searchUrl function to string template for JSON serialization
+  const serialized = websites.map((w) => ({
+    ...w,
+    searchUrl: w.searchUrl(""),
+  }));
+
+  return NextResponse.json(serialized);
 }
