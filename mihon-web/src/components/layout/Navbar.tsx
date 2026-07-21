@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Search, Clock, Settings, Library, Puzzle } from "lucide-react";
+import { Search, Clock, Settings, Library, Globe } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Library", icon: Library },
   { href: "/search", label: "Search", icon: Search },
+  { href: "/websites", label: "Websites", icon: Globe },
   { href: "/history", label: "History", icon: Clock },
-  { href: "/extensions", label: "Extensions", icon: Puzzle },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
