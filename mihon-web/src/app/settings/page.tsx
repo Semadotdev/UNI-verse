@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useToast } from "@/contexts/ToastContext";
 import { Card } from "@/components/ui/Card";
@@ -26,7 +25,6 @@ export default function SettingsPage() {
   const { addToast } = useToast();
   const [sources, setSources] = useState<Source[]>([]);
   const [loadingSources, setLoadingSources] = useState(true);
-  const [installedExts, setInstalledExts] = useState<any[]>([]);
 
   useEffect(() => {
     fetch("/api/sources")
@@ -40,29 +38,6 @@ export default function SettingsPage() {
         setLoadingSources(false);
       });
   }, []);
-
-  useEffect(() => {
-    fetch("/api/sources/installed")
-      .then((r) => r.json())
-      .then((data) => setInstalledExts(Array.isArray(data) ? data : []))
-      .catch(() => setInstalledExts([]));
-  }, []);
-
-  const handleUninstallExt = async (pkg: string) => {
-    try {
-      const res = await fetch("/api/sources/installed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pkg, action: "uninstall" }),
-      });
-      if (res.ok) {
-        setInstalledExts((prev) => prev.filter((e) => e.pkg !== pkg));
-        addToast("Extension removed", "success");
-      }
-    } catch {
-      addToast("Failed to remove extension", "error");
-    }
-  };
 
   const enabledSourcesList = settings.enabledSources
     ? settings.enabledSources.split(",").filter(Boolean)
@@ -212,43 +187,7 @@ export default function SettingsPage() {
           )}
         </Card>
 
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold">Installed Extensions</h2>
-          {installedExts.length === 0 ? (
-            <p className="text-sm text-zinc-400">
-              No extensions installed. Browse the{" "}
-              <Link href="/extensions" className="text-primary hover:underline">
-                Extensions page
-              </Link>{" "}
-              to add sources.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {installedExts.map((ext: any) => (
-                <div
-                  key={ext.pkg}
-                  className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {ext.name?.replace("Tachiyomi: ", "")}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      v{ext.version} · {ext.lang}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleUninstallExt(ext.pkg)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold">About</h2>
