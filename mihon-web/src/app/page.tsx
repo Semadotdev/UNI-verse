@@ -1,424 +1,350 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { MangaGrid } from "@/components/manga/MangaGrid";
-import { Spinner } from "@/components/ui/Spinner";
-import {
-  Search,
-  BookOpen,
-  ChevronRight,
-  Library,
-  BookMarked,
-  ArrowRight,
-  Sparkles,
-  Clock,
-  TrendingUp,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useLibrary } from "@/contexts/LibraryContext";
+import { MangaGrid } from "@/components/manga/MangaGrid";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { MangaGridSkeleton, ListRowSkeleton } from "@/components/ui/Skeleton";
+import { LibraryFilters, SortOption, ViewMode } from "@/components/library/LibraryFilters";
+import { CategoryManager } from "@/components/library/CategoryManager";
 
-/* ── Types ────────────────────────────────────────────────────────── */
-
-interface Source {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  enabled: boolean;
-}
-
-interface HistoryEntry {
-  id: string;
+interface HistoryItem {
   mangaId: string;
   sourceId: string;
-  chapterId: string;
-  chapterNum: number | null;
+  chapterNum: number;
+  progress: number;
   readAt: string;
-  progress: number | null;
 }
 
-/* ── Helpers ──────────────────────────────────────────────────────── */
+export default function LibraryPage() {
+  const { library, loading } = useLibrary();
+  const [filter, setFilter] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortOption>("recently_added");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return `${Math.floor(days / 7)}w ago`;
-}
-
-/** Map source id to a relevant emoji for the card icon */
-function sourceEmoji(id: string): string {
-  const map: Record<string, string> = {
-    mangadex: "\uD83D\uDCD6",
-    mangasee: "\uD83C\uDF1F",
-    mangakakalot: "\uD83D\uDCDA",
-    mangaplus: "\uD83D\uDD25",
-  };
-  return map[id.toLowerCase()] ?? "\uD83D\uDCD6";
-}
-
-/* ── Component ────────────────────────────────────────────────────── */
-
-export default function HomePage() {
-  const { library, loading: libraryLoading } = useLibrary();
-
-  const [sources, setSources] = useState<Source[]>([]);
-  const [popular, setPopular] = useState<any[]>([]);
-  const [latest, setLatest] = useState<any[]>([]);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  /* ── Data fetching ──────────────────────────────────────────────── */
-
+  // Fetch reading history
   useEffect(() => {
-    async function load() {
+    async function loadHistory() {
       try {
-        const [sourcesRes, popularRes, latestRes, historyRes] =
-          await Promise.all([
-            fetch("/api/sources"),
-            fetch("/api/search?q=one+piece&page=1"),
-            fetch("/api/search?q=naruto&page=1"),
-            fetch("/api/history"),
-          ]);
-
-        if (sourcesRes.ok) {
-          const data = await sourcesRes.json();
-          if (Array.isArray(data))
-            setSources(data.filter((s: Source) => s.enabled));
-        }
-
-        if (popularRes.ok) {
-          const data = await popularRes.json();
-          if (Array.isArray(data) && data.length > 0)
-            setPopular(data[0]?.items || []);
-        }
-
-        if (latestRes.ok) {
-          const data = await latestRes.json();
-          if (Array.isArray(data) && data.length > 0)
-            setLatest(data[0]?.items || []);
-        }
-
-        if (historyRes.ok) {
-          const data = await historyRes.json();
-          if (Array.isArray(data)) setHistory(data);
-        }
+        const res = await fetch("/api/history");
+        const data = await res.json();
+        setHistory(data);
       } catch (error) {
-        console.error("Failed to load home page data:", error);
-      } finally {
-        setLoading(false);
+        console.error("Failed to load history:", error);
       }
     }
-    load();
+    loadHistory();
   }, []);
 
-  /* ── Derived data ───────────────────────────────────────────────── */
+  // Extract all unique categories from library
+  useEffect(() => {
+    const cats = [
+      ...new Set(
+        library.flatMap((item) =>
+          item.categories ? item.categories.split(",").filter(Boolean) : []
+        )
+      ),
+    ];
+    setAllCategories(cats.sort());
+  }, [library]);
 
-  /** Deduplicate history by mangaId, keeping only the most recent entry */
-  const continueReading = useMemo(() => {
-    const byManga = new Map<string, HistoryEntry>();
+  // Build a map of mangaId -> latest history entry
+  const historyMap = useMemo(() => {
+    const map = new Map<string, HistoryItem>();
     for (const entry of history) {
-      const existing = byManga.get(entry.mangaId);
+      const existing = map.get(entry.mangaId);
       if (!existing || new Date(entry.readAt) > new Date(existing.readAt)) {
-        byManga.set(entry.mangaId, entry);
+        map.set(entry.mangaId, entry);
       }
     }
-    return Array.from(byManga.values())
-      .sort(
-        (a, b) => new Date(b.readAt).getTime() - new Date(a.readAt).getTime()
-      )
-      .slice(0, 12);
+    return map;
   }, [history]);
 
-  const totalChaptersRead = history.length;
-  const libraryCount = library.length;
+  // Filter library items
+  const filteredLibrary = useMemo(() => {
+    let items = filter
+      ? library.filter((item) => {
+          const cats = item.categories ? item.categories.split(",") : [];
+          return cats.includes(filter);
+        })
+      : library;
 
-  /* ── Loading state ──────────────────────────────────────────────── */
+    // Sort items
+    items = [...items].sort((a, b) => {
+      switch (sort) {
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "last_read": {
+          const aHistory = historyMap.get(a.mangaId);
+          const bHistory = historyMap.get(b.mangaId);
+          const aDate = aHistory ? new Date(aHistory.readAt).getTime() : 0;
+          const bDate = bHistory ? new Date(bHistory.readAt).getTime() : 0;
+          return bDate - aDate;
+        }
+        case "recently_added":
+        default:
+          return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+      }
+    });
+
+    return items;
+  }, [library, filter, sort, historyMap]);
+
+  // Handle category updates from modal
+  const handleCategoriesUpdate = (updatedCategories: string[]) => {
+    // For now, just update local state
+    // In a real app, this would persist to the backend
+    setAllCategories(updatedCategories);
+  };
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Spinner size="lg" />
-          <p className="animate-fade-in-up text-sm text-zinc-500">
-            Loading your library...
-          </p>
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-6 h-8 w-32 animate-pulse rounded bg-zinc-800" />
+        <div className="mb-6 flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-8 w-20 animate-pulse rounded-lg bg-zinc-800" />
+          ))}
         </div>
+        <MangaGridSkeleton count={12} />
       </div>
     );
   }
 
-  /* ── Render ─────────────────────────────────────────────────────── */
-
   return (
-    <div className="mx-auto max-w-7xl px-4">
-      {/* ═══════════════ HERO ═══════════════ */}
-      <section className="animate-fade-in-up relative mb-12 overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-900 via-zinc-900 to-primary/20">
-        {/* Animated gradient overlay */}
-        <div className="animate-gradient-shift pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/10 to-primary/5 opacity-60" />
+    <div className="mx-auto max-w-7xl px-4 animate-fade-in-up">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Library</h1>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowCategoryManager(true)}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mr-2"
+          >
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          Manage Categories
+        </Button>
+      </div>
 
-        {/* Decorative blobs */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-accent/10 blur-3xl" />
-
-        <div className="relative z-10 px-6 py-12 text-center sm:px-10 sm:py-16">
-          <h1 className="gradient-text mb-2 text-4xl font-extrabold tracking-tight sm:text-5xl">
-            Mihon Web
-          </h1>
-          <p className="mb-8 text-lg text-zinc-400">
-            Your personal manga library, everywhere.
-          </p>
-
-          {/* Animated search bar */}
-          <div className="mx-auto mb-8 max-w-lg">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for manga..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && searchQuery.trim()) {
-                    window.location.href = `/search?q=${encodeURIComponent(searchQuery.trim())}`;
-                  }
-                }}
-                className="search-hero-input w-full rounded-xl border border-zinc-700 bg-zinc-800/80 py-3 pl-12 pr-4 text-sm text-zinc-100 placeholder-zinc-500 backdrop-blur-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-          </div>
-
-          {/* Quick stats */}
-          <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-            <div className="flex items-center gap-2 text-zinc-400">
-              <Library className="h-4 w-4 text-primary" />
-              <span>
-                <span className="font-semibold text-zinc-200">
-                  {libraryCount}
-                </span>{" "}
-                {libraryCount === 1 ? "manga" : "manga"} in library
-              </span>
-            </div>
-            <div className="h-4 w-px bg-zinc-700" />
-            <div className="flex items-center gap-2 text-zinc-400">
-              <BookMarked className="h-4 w-4 text-accent" />
-              <span>
-                <span className="font-semibold text-zinc-200">
-                  {totalChaptersRead}
-                </span>{" "}
-                {totalChaptersRead === 1 ? "chapter" : "chapters"} read
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ CONTINUE READING ═══════════════ */}
-      {continueReading.length > 0 && (
-        <section className="animate-fade-in-up delay-1 mb-12">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-2xl font-bold">
-              <BookOpen className="h-6 w-6 text-primary" />
-              Continue Reading
-            </h2>
-            <Link
-              href="/search"
-              className="flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
+      {/* Category filter pills */}
+      {allCategories.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          <Button
+            variant={filter === null ? "primary" : "ghost"}
+            size="sm"
+            onClick={() => setFilter(null)}
+          >
+            All
+          </Button>
+          {allCategories.map((cat) => (
+            <Button
+              key={cat}
+              variant={filter === cat ? "primary" : "ghost"}
+              size="sm"
+              onClick={() => setFilter(cat)}
             >
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+              {cat}
+            </Button>
+          ))}
+        </div>
+      )}
 
-          {/* Horizontal scroll on mobile, grid on desktop */}
-          <div className="-mx-4 overflow-x-auto px-4 pb-2 scrollbar-none sm:mx-0 sm:overflow-visible sm:px-0">
-            <div className="flex gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {continueReading.map((entry, idx) => (
+      {/* Sort and View Toggle */}
+      <LibraryFilters
+        sort={sort}
+        onSortChange={setSort}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
+
+      {/* Library content */}
+      {filteredLibrary.length > 0 ? (
+        viewMode === "grid" ? (
+          <MangaGrid
+            manga={filteredLibrary.map((item) => ({
+              id: item.mangaId,
+              title: item.title,
+              cover: item.cover || "",
+              status: (item.status as "ongoing" | "completed" | "hiatus" | "cancelled") || undefined,
+            }))}
+            sourceId={filteredLibrary[0]?.sourceId || "mangadex"}
+          />
+        ) : (
+          /* List view */
+          <div className="space-y-3">
+            {filteredLibrary.map((item) => {
+              const historyEntry = historyMap.get(item.mangaId);
+              return (
                 <Link
-                  key={entry.id}
-                  href={`/manga/${entry.sourceId}/${entry.mangaId}?chapter=${entry.chapterId}`}
-                  className={cn(
-                    "animate-fade-in-up group flex min-w-[280px] items-center gap-4 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 backdrop-blur-sm",
-                    "transition-all duration-200 hover:border-zinc-700 hover:bg-zinc-800/60 hover:shadow-lg hover:shadow-primary/5",
-                    `delay-${Math.min(idx + 1, 8)}`
-                  )}
+                  key={`${item.sourceId}-${item.mangaId}`}
+                  href={`/manga/${item.sourceId}/${item.mangaId}`}
+                  className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900 p-3 transition-all hover:border-zinc-700 hover:shadow-lg"
                 >
-                  {/* Cover */}
-                  <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-800">
-                    <img
-                      src={`/api/image?url=${encodeURIComponent(
-                        `https://uploads.mangadex.org/covers/${entry.mangaId}/cover.jpg`
-                      )}`}
-                      alt=""
-                      className="h-full w-full object-cover transition-transform group-hover:scale-110"
-                      loading="lazy"
-                    />
-                  </div>
-
-                  {/* Info */}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-zinc-100 group-hover:text-white">
-                      Manga {entry.mangaId.slice(0, 8)}
-                    </p>
-                    <p className="mt-0.5 text-xs text-zinc-400">
-                      {entry.chapterNum != null
-                        ? `Chapter ${entry.chapterNum}`
-                        : "Last read"}
-                    </p>
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      {timeAgo(entry.readAt)}
-                    </p>
-
-                    {/* Progress bar */}
-                    {entry.progress != null && entry.progress > 0 && (
-                      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-zinc-800">
-                        <div
-                          className="animate-progress-fill h-full rounded-full bg-gradient-to-r from-primary to-accent"
-                          style={{
-                            width: `${Math.min(entry.progress, 100)}%`,
-                          }}
-                        />
+                  {/* Cover thumbnail */}
+                  <div className="h-20 w-14 flex-shrink-0 overflow-hidden rounded bg-zinc-800">
+                    {item.cover ? (
+                      <img
+                        src={`/api/image?url=${encodeURIComponent(item.cover)}`}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-zinc-600">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                        >
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                        </svg>
                       </div>
                     )}
                   </div>
 
-                  {/* Continue button */}
-                  <div className="shrink-0">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary transition-colors group-hover:bg-primary/25">
-                      <BookOpen className="h-3 w-3" />
-                      Read
-                    </span>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-medium text-zinc-100 truncate">
+                      {item.title}
+                    </h3>
+                    {item.status && (
+                      <p className="text-xs text-zinc-500 capitalize mt-0.5">
+                        {item.status}
+                      </p>
+                    )}
+                    {item.categories && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.categories
+                          .split(",")
+                          .filter(Boolean)
+                          .slice(0, 3)
+                          .map((cat) => (
+                            <span
+                              key={cat}
+                              className="inline-block rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-400"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        {item.categories.split(",").filter(Boolean).length > 3 && (
+                          <span className="text-[10px] text-zinc-500">
+                            +{item.categories.split(",").filter(Boolean).length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Reading progress bar */}
+                    {historyEntry && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-500 mb-1">
+                          <span>Ch. {historyEntry.chapterNum}</span>
+                          <span>{historyEntry.progress}%</span>
+                        </div>
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800">
+                          <div
+                            className="h-full rounded-full bg-primary transition-all"
+                            style={{ width: `${historyEntry.progress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
-      {/* ═══════════════ BROWSE BY SOURCE ═══════════════ */}
-      {sources.length > 0 && (
-        <section className="animate-fade-in-up delay-2 mb-12">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-2xl font-bold">
-              <Sparkles className="h-6 w-6 text-accent" />
-              Browse by Source
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {sources.map((source, idx) => (
-              <Link
-                key={source.id}
-                href={`/source/${source.id}`}
-                className={cn(
-                  "source-card animate-fade-in-up group relative rounded-xl border border-zinc-800 p-6",
-                  "bg-gradient-to-br from-zinc-900 to-zinc-900/80",
-                  "transition-all duration-300 hover:scale-[1.02] hover:border-zinc-700 hover:shadow-xl hover:shadow-primary/10",
-                  `delay-${Math.min(idx + 1, 8)}`
-                )}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="mt-0.5 text-2xl">
-                      {sourceEmoji(source.id)}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-bold text-zinc-100 group-hover:text-white">
-                        {source.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
-                        {source.description}
+                  {/* Last read timestamp */}
+                  {historyEntry && (
+                    <div className="flex-shrink-0 text-right">
+                      <p className="text-[10px] text-zinc-500">Last read</p>
+                      <p className="text-xs text-zinc-400">
+                        {formatRelativeTime(historyEntry.readAt)}
                       </p>
                     </div>
-                  </div>
-                  <ChevronRight className="ml-3 h-5 w-5 shrink-0 text-zinc-500 transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary" />
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-primary/15 px-3 py-1 text-xs font-medium text-primary transition-colors group-hover:bg-primary/25">
-                    <TrendingUp className="h-3 w-3" />
-                    Browse
-                  </span>
-                  <span className="text-xs text-zinc-600">
-                    {source.id === "mangadex"
-                      ? "200k+ titles"
-                      : "10k+ titles"}
-                  </span>
-                </div>
-              </Link>
-            ))}
+                  )}
+                </Link>
+              );
+            })}
           </div>
-        </section>
-      )}
-
-      {/* ═══════════════ POPULAR ═══════════════ */}
-      {popular.length > 0 && (
-        <section className="animate-fade-in-up delay-3 mb-12">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-2xl font-bold">
-              <TrendingUp className="h-6 w-6 text-orange-400" />
-              Popular
-            </h2>
-            <Link
-              href="/search"
-              className="flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
+        )
+      ) : (
+        /* Empty state */
+        <EmptyState
+          icon={
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              className="text-zinc-600"
             >
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <MangaGrid manga={popular} sourceId="mangadex" />
-        </section>
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              <line x1="8" y1="7" x2="16" y2="7" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
+          }
+          title={filter ? "No manga in this category" : "Your library is empty"}
+          description={
+            filter
+              ? "Try selecting a different category or browse for manga to add."
+              : "Search and add manga to your library to start reading!"
+          }
+          actionLabel={filter ? "View all manga" : undefined}
+          onAction={filter ? () => setFilter(null) : undefined}
+        />
       )}
 
-      {/* ═══════════════ RECENT UPDATES ═══════════════ */}
-      {latest.length > 0 && (
-        <section className="animate-fade-in-up delay-4 mb-12">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-2xl font-bold">
-              <Clock className="h-6 w-6 text-emerald-400" />
-              Recent Updates
-            </h2>
-            <Link
-              href="/search"
-              className="flex items-center gap-1 text-sm text-primary transition-colors hover:text-primary/80"
-            >
-              View All <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-
-          {/* "New" badge */}
-          <div className="mb-4 flex items-center gap-2">
-            <span className="badge-new inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Updated today
-            </span>
-          </div>
-
-          <MangaGrid manga={latest} sourceId="mangadex" />
-        </section>
-      )}
-
-      {/* ═══════════════ EMPTY STATE ═══════════════ */}
-      {popular.length === 0 && latest.length === 0 && (
-        <div className="animate-fade-in-up mt-8 text-center text-zinc-500">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800/50">
-            <Search className="h-8 w-8 text-zinc-600" />
-          </div>
-          <p className="mb-2 text-lg font-medium text-zinc-400">
-            Start exploring manga
-          </p>
-          <p className="text-sm text-zinc-600">
-            Use the search above to find your favorite series
-          </p>
-        </div>
+      {/* Category Manager Modal */}
+      {showCategoryManager && (
+        <CategoryManager
+          categories={allCategories}
+          onUpdate={handleCategoriesUpdate}
+          onClose={() => setShowCategoryManager(false)}
+        />
       )}
     </div>
   );
+}
+
+// Helper function to format relative time
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return date.toLocaleDateString();
 }
