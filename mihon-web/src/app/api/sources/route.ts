@@ -6,6 +6,7 @@ export async function GET() {
     id: s.id,
     name: s.name,
     icon: s.icon,
+    description: s.description,
     enabled: s.enabled,
   }));
 

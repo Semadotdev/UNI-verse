@@ -30,6 +30,7 @@ export class MangaDexSource implements SourceAdapter {
   id = "mangadex";
   name = "MangaDex";
   icon = "/icons/mangadex.svg";
+  description = "MangaDex - Multi-language manga aggregator";
   enabled = true;
 
   private getEnglishTitle(manga: MangaDexManga): string {

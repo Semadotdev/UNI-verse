@@ -22,6 +22,7 @@ export interface SourceAdapter {
   id: string;
   name: string;
   icon: string;
+  description: string;
   enabled: boolean;
 
   search(query: string, page: number): Promise<SearchResult[]>;

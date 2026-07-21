@@ -1,13 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSettings } from "@/contexts/SettingsContext";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
+interface Source {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  enabled: boolean;
+}
+
+const SOURCE_EMOJI: Record<string, string> = {
+  mangadex: "🌐",
+  mangasee: "📖",
+};
+
 export default function SettingsPage() {
-  const [theme, setTheme] = useState("dark");
-  const [readerMode, setReaderMode] = useState("page");
-  const [readingDir, setReadingDir] = useState("rtl");
+  const { settings, updateSettings } = useSettings();
+  const [sources, setSources] = useState<Source[]>([]);
+  const [loadingSources, setLoadingSources] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/sources")
+      .then((r) => r.json())
+      .then((data) => {
+        setSources(data);
+        setLoadingSources(false);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch sources:", err);
+        setLoadingSources(false);
+      });
+  }, []);
+
+  const enabledSourcesList = settings.enabledSources
+    ? settings.enabledSources.split(",").filter(Boolean)
+    : [];
+
+  const isSourceEnabled = (sourceId: string) => {
+    return enabledSourcesList.includes(sourceId);
+  };
+
+  const toggleSource = (sourceId: string) => {
+    const current = enabledSourcesList;
+    let updated: string[];
+    if (current.includes(sourceId)) {
+      updated = current.filter((id) => id !== sourceId);
+    } else {
+      updated = [...current, sourceId];
+    }
+    updateSettings({ enabledSources: updated.join(",") });
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4">
@@ -23,9 +69,9 @@ export default function SettingsPage() {
                 {["light", "dark", "system"].map((t) => (
                   <Button
                     key={t}
-                    variant={theme === t ? "primary" : "ghost"}
+                    variant={settings.theme === t ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => setTheme(t)}
+                    onClick={() => updateSettings({ theme: t })}
                   >
                     {t.charAt(0).toUpperCase() + t.slice(1)}
                   </Button>
@@ -46,9 +92,9 @@ export default function SettingsPage() {
                 {["page", "webtoon"].map((mode) => (
                   <Button
                     key={mode}
-                    variant={readerMode === mode ? "primary" : "ghost"}
+                    variant={settings.readerMode === mode ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => setReaderMode(mode)}
+                    onClick={() => updateSettings({ readerMode: mode })}
                   >
                     {mode.charAt(0).toUpperCase() + mode.slice(1)}
                   </Button>
@@ -63,9 +109,9 @@ export default function SettingsPage() {
                 {["ltr", "rtl"].map((dir) => (
                   <Button
                     key={dir}
-                    variant={readingDir === dir ? "primary" : "ghost"}
+                    variant={settings.readingDir === dir ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => setReadingDir(dir)}
+                    onClick={() => updateSettings({ readingDir: dir })}
                   >
                     {dir.toUpperCase()}
                   </Button>
@@ -73,6 +119,50 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </Card>
+
+        <Card>
+          <h2 className="mb-4 text-lg font-semibold">Extensions</h2>
+          {loadingSources ? (
+            <p className="text-sm text-zinc-400">Loading sources...</p>
+          ) : sources.length === 0 ? (
+            <p className="text-sm text-zinc-400">No sources available.</p>
+          ) : (
+            <div className="space-y-3">
+              {sources.map((source) => {
+                const enabled = isSourceEnabled(source.id);
+                return (
+                  <div
+                    key={source.id}
+                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
+                      enabled
+                        ? "border-primary/30 bg-primary/5"
+                        : "border-zinc-800 bg-zinc-950"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {SOURCE_EMOJI[source.id] ?? "📦"}
+                      </span>
+                      <div>
+                        <p className="font-medium">{source.name}</p>
+                        <p className="text-sm text-zinc-400">
+                          {source.description}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={enabled ? "primary" : "secondary"}
+                      size="sm"
+                      onClick={() => toggleSource(source.id)}
+                    >
+                      {enabled ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </Card>
 
         <Card>

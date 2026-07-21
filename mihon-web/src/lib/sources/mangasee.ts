@@ -7,6 +7,7 @@ export class MangaSeeSource implements SourceAdapter {
   id = "mangasee";
   name = "MangaSee";
   icon = "/icons/mangasee.svg";
+  description = "MangaSee - English manga library";
   enabled = true;
 
   async search(query: string, page: number): Promise<SearchResult[]> {
