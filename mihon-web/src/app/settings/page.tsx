@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useToast } from "@/contexts/ToastContext";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Source {
   id: string;
@@ -20,6 +22,7 @@ const SOURCE_EMOJI: Record<string, string> = {
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useSettings();
+  const { addToast } = useToast();
   const [sources, setSources] = useState<Source[]>([]);
   const [loadingSources, setLoadingSources] = useState(true);
 
@@ -53,10 +56,26 @@ export default function SettingsPage() {
       updated = [...current, sourceId];
     }
     updateSettings({ enabledSources: updated.join(",") });
+    addToast("Settings saved", "success");
+  };
+
+  const handleThemeChange = (theme: string) => {
+    updateSettings({ theme });
+    addToast(`Theme set to ${theme}`, "success");
+  };
+
+  const handleReaderModeChange = (mode: string) => {
+    updateSettings({ readerMode: mode });
+    addToast(`Reader mode set to ${mode}`, "success");
+  };
+
+  const handleReadingDirChange = (dir: string) => {
+    updateSettings({ readingDir: dir });
+    addToast(`Reading direction set to ${dir.toUpperCase()}`, "success");
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4">
+    <div className="mx-auto max-w-2xl px-4 animate-fade-in-up">
       <h1 className="mb-6 text-2xl font-bold">Settings</h1>
 
       <div className="space-y-6">
@@ -71,7 +90,7 @@ export default function SettingsPage() {
                     key={t}
                     variant={settings.theme === t ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => updateSettings({ theme: t })}
+                    onClick={() => handleThemeChange(t)}
                   >
                     {t.charAt(0).toUpperCase() + t.slice(1)}
                   </Button>
@@ -94,7 +113,7 @@ export default function SettingsPage() {
                     key={mode}
                     variant={settings.readerMode === mode ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => updateSettings({ readerMode: mode })}
+                    onClick={() => handleReaderModeChange(mode)}
                   >
                     {mode.charAt(0).toUpperCase() + mode.slice(1)}
                   </Button>
@@ -111,7 +130,7 @@ export default function SettingsPage() {
                     key={dir}
                     variant={settings.readingDir === dir ? "primary" : "ghost"}
                     size="sm"
-                    onClick={() => updateSettings({ readingDir: dir })}
+                    onClick={() => handleReadingDirChange(dir)}
                   >
                     {dir.toUpperCase()}
                   </Button>
@@ -126,7 +145,10 @@ export default function SettingsPage() {
           {loadingSources ? (
             <p className="text-sm text-zinc-400">Loading sources...</p>
           ) : sources.length === 0 ? (
-            <p className="text-sm text-zinc-400">No sources available.</p>
+            <EmptyState
+              title="No sources available"
+              description="Install extensions from the source manager to get started."
+            />
           ) : (
             <div className="space-y-3">
               {sources.map((source) => {

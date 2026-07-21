@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Spinner } from "@/components/ui/Spinner";
 import { Clock } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ListRowSkeleton } from "@/components/ui/Skeleton";
 
 interface HistoryItem {
   id: string;
@@ -36,23 +37,28 @@ export default function HistoryPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Spinner size="lg" />
+      <div className="mx-auto max-w-5xl px-4">
+        <div className="mb-6 h-8 w-48 animate-pulse rounded bg-zinc-800" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <ListRowSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4">
+    <div className="mx-auto max-w-5xl px-4 animate-fade-in-up">
       <h1 className="mb-6 text-2xl font-bold">Reading History</h1>
 
       {history.length > 0 ? (
         <div className="space-y-3">
-          {history.map((item) => (
+          {history.map((item, index) => (
             <Link
               key={item.id}
               href={`/read/${item.sourceId}/${item.mangaId}/${item.chapterId}`}
-              className="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3 transition-colors hover:bg-zinc-800"
+              className={`flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-3 transition-colors hover:bg-zinc-800 animate-fade-in-up stagger-${Math.min(index + 1, 8)}`}
             >
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-zinc-500" />
@@ -75,9 +81,13 @@ export default function HistoryPage() {
           ))}
         </div>
       ) : (
-        <p className="text-center text-zinc-500">
-          No reading history yet. Start reading to track your progress!
-        </p>
+        <EmptyState
+          icon={
+            <Clock className="h-12 w-12 text-zinc-600" />
+          }
+          title="No reading history yet"
+          description="Start reading to track your progress!"
+        />
       )}
     </div>
   );

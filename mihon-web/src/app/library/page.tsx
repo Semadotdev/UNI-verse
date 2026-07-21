@@ -4,8 +4,9 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { MangaGrid } from "@/components/manga/MangaGrid";
-import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { MangaGridSkeleton, ListRowSkeleton } from "@/components/ui/Skeleton";
 import { LibraryFilters, SortOption, ViewMode } from "@/components/library/LibraryFilters";
 import { CategoryManager } from "@/components/library/CategoryManager";
 
@@ -103,14 +104,20 @@ export default function LibraryPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Spinner size="lg" />
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-6 h-8 w-32 animate-pulse rounded bg-zinc-800" />
+        <div className="mb-6 flex gap-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-8 w-20 animate-pulse rounded-lg bg-zinc-800" />
+          ))}
+        </div>
+        <MangaGridSkeleton count={12} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4">
+    <div className="mx-auto max-w-7xl px-4 animate-fade-in-up">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Library</h1>
@@ -283,8 +290,8 @@ export default function LibraryPage() {
         )
       ) : (
         /* Empty state */
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-4 rounded-full bg-zinc-800 p-4">
+        <EmptyState
+          icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="48"
@@ -300,26 +307,16 @@ export default function LibraryPage() {
               <line x1="8" y1="7" x2="16" y2="7" />
               <line x1="8" y1="11" x2="14" y2="11" />
             </svg>
-          </div>
-          <h3 className="text-lg font-medium text-zinc-300 mb-1">
-            {filter ? "No manga in this category" : "Your library is empty"}
-          </h3>
-          <p className="text-sm text-zinc-500 max-w-sm">
-            {filter
+          }
+          title={filter ? "No manga in this category" : "Your library is empty"}
+          description={
+            filter
               ? "Try selecting a different category or browse for manga to add."
-              : "Search and add manga to your library to start reading!"}
-          </p>
-          {filter && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-4"
-              onClick={() => setFilter(null)}
-            >
-              View all manga
-            </Button>
-          )}
-        </div>
+              : "Search and add manga to your library to start reading!"
+          }
+          actionLabel={filter ? "View all manga" : undefined}
+          onAction={filter ? () => setFilter(null) : undefined}
+        />
       )}
 
       {/* Category Manager Modal */}

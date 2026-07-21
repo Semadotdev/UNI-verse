@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { SearchBar } from "@/components/search/SearchBar";
 import { SearchResults } from "@/components/search/SearchResults";
-import { Spinner } from "@/components/ui/Spinner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { MangaGridSkeleton } from "@/components/ui/Skeleton";
 
 export default function SearchPage() {
   const [results, setResults] = useState<any[]>([]);
@@ -25,22 +26,39 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4">
+    <div className="mx-auto max-w-7xl px-4 animate-fade-in-up">
       <h1 className="mb-6 text-2xl font-bold">Search</h1>
       <div className="mb-8 max-w-xl">
         <SearchBar onSearch={handleSearch} />
       </div>
 
       {loading ? (
-        <div className="flex h-[40vh] items-center justify-center">
-          <Spinner size="lg" />
+        <div>
+          <div className="mb-4 h-6 w-48 animate-pulse rounded bg-zinc-800" />
+          <MangaGridSkeleton count={6} />
         </div>
       ) : searched ? (
         <SearchResults results={results} />
       ) : (
-        <p className="text-center text-zinc-500">
-          Search for manga across multiple sources
-        </p>
+        <EmptyState
+          icon={
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              className="text-zinc-600"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          }
+          title="Search for manga"
+          description="Search across multiple sources to find your next read"
+        />
       )}
     </div>
   );
