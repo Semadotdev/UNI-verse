@@ -1,115 +1,91 @@
-@import "tailwindcss";
-@config "../../tailwind.config.ts";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-deep: #09090b;
+  --bg-raised: #111118;
+  --bg-overlay: #1a1a24;
+  --border: #27272a;
+  --border-hover: #3f3f46;
+  --primary: #7C3AED;
+  --primary-hover: #6D28D9;
+  --primary-light: #A78BFA;
+  --accent: #A78BFA;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --gradient-primary: linear-gradient(135deg, #7C3AED, #A78BFA);
+  --gradient-hero: linear-gradient(135deg, #09090b 0%, #111118 40%, #1a1030 100%);
+  --glow-purple: rgba(124, 58, 237, 0.25);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-}
-
-/* ── Smooth scroll ─────────────────────────────────────── */
 html {
   scroll-behavior: smooth;
 }
 
-/* ── Selection color ───────────────────────────────────── */
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
 ::selection {
-  background-color: rgba(99, 102, 241, 0.35);
+  background-color: rgba(124, 58, 237, 0.35);
   color: #ffffff;
 }
 
-/* ── Toast slide-in animation ──────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateX(100%) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
   }
 }
 
 .animate-toast-in {
-  animation: toast-in 0.25s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+  animation: toast-in 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
 }
 
-/* ── Page fade-in animation ────────────────────────────── */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fade-in-up 0.35s ease-out forwards;
-  opacity: 0;
-}
-
-/* Simple fade-in */
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.4s ease-out forwards;
-}
-
-/* ── Stagger delay utilities ───────────────────────────── */
-.delay-1 { animation-delay: 50ms; }
-.delay-2 { animation-delay: 100ms; }
-.delay-3 { animation-delay: 150ms; }
-.delay-4 { animation-delay: 200ms; }
-.delay-5 { animation-delay: 250ms; }
-.delay-6 { animation-delay: 300ms; }
-
-/* ── Gradient text utility ─────────────────────────────── */
 .text-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ── Gradient shift animation ──────────────────────────── */
-@keyframes gradient-shift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradient-shift 6s ease infinite;
-}
-
-/* ── Progress bar fill ─────────────────────────────────── */
 @keyframes progress-fill {
   from { width: 0; }
 }
@@ -118,17 +94,6 @@ html {
   animation: progress-fill 0.6s ease-out forwards;
 }
 
-/* ── Badge styles ──────────────────────────────────────── */
-.badge-new {
-  animation: fade-in 0.4s ease-out forwards;
-}
-
-/* ── Hero search input ─────────────────────────────────── */
-.search-hero-input {
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-/* ── Scrollbar hide ────────────────────────────────────── */
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -137,35 +102,42 @@ html {
   display: none;
 }
 
-/* ── Source card shimmer on hover ─────────────────────── */
-.source-card {
-  position: relative;
+.line-clamp-1 {
   overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
 }
 
-.source-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.prose-dark {
+  color: #a1a1aa;
+  line-height: 1.7;
+}
+.prose-dark p {
+  margin-bottom: 1em;
+}
+
+.skeleton-shimmer {
   background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.03) 45%,
-    rgba(255, 255, 255, 0.06) 50%,
-    rgba(255, 255, 255, 0.03) 55%,
-    transparent 60%
+    90deg,
+    #1a1a24 0%,
+    #27272a 50%,
+    #1a1a24 100%
   );
   background-size: 200% 100%;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.source-card:hover::after {
-  opacity: 1;
-  animation: shimmer 1.5s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  animation: shimmer 2s linear infinite;
 }
