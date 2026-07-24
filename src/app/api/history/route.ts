@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { HistoryService } from '@/application/services/history.service';
+import { successResponse, errorResponse } from '@/domain/types/api';
+import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+
+const historyService = new HistoryService();
+
+export async function GET() {
+  try {
+    await ensureDefaultUser();
+    const history = await historyService.getHistory(DEFAULT_USER_ID);
+    const mapped = history.map((h) => ({
+      id: h.id,
+      mangaId: h.mangaId,
+      providerId: h.providerId,
+      chapterId: h.chapterId,
+      chapterNumber: h.chapterNum,
+      mangaTitle: h.title,
+      coverUrl: h.coverUrl,
+      readAt: h.readAt,
+    }));
+    return NextResponse.json(successResponse(mapped));
+  } catch (error) {
+    return NextResponse.json(
+      errorResponse('HISTORY_ERROR', error instanceof Error ? error.message : 'Failed to get history'),
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await ensureDefaultUser();
+    const body = await request.json();
+    const { providerId, mangaId, chapterId, chapterNum, title, coverUrl, progress, completed } = body;
+
+    if (!providerId || !mangaId || !chapterId || chapterNum === undefined) {
+      return NextResponse.json(
+        errorResponse('MISSING_FIELDS', 'providerId, mangaId, chapterId, and chapterNum are required'),
+        { status: 400 }
+      );
+    }
+
+    await historyService.updateProgress(DEFAULT_USER_ID, providerId, mangaId, {
+      chapterId,
+      chapterNum,
+      title,
+      coverUrl,
+      progress,
+      completed,
+    });
+
+    return NextResponse.json(successResponse({ updated: true }));
+  } catch (error) {
+    return NextResponse.json(
+      errorResponse('HISTORY_ERROR', error instanceof Error ? error.message : 'Failed to update history'),
+      { status: 500 }
+    );
+  }
+}
