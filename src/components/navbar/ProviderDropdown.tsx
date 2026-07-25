@@ -43,7 +43,7 @@ export function ProviderDropdown() {
   const currentProvider = providers.find((p) => p.id === selectedProvider);
   const currentName = currentProvider?.name ?? "Source";
 
-  const priority: Record<string, number> = { asurascans: 0, mangago: 1 };
+  const priority: Record<string, number> = { asurascans: 0 };
   const sorted = [...providers].sort((a, b) => {
     const pa = priority[a.id] ?? 2;
     const pb = priority[b.id] ?? 2;

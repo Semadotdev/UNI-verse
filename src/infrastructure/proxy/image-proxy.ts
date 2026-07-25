@@ -7,9 +7,6 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 const REFERER_MAP: Record<string, string> = {
   'comix.to': 'https://comix.to/',
-  'nhentai.net': 'https://nhentai.net/',
-  'nhentai.to': 'https://nhentai.net/',
-  'zrocdn.xyz': 'https://nhentai.net/',
 };
 
 function getRefererForUrl(url: string): string | undefined {

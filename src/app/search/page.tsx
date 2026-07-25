@@ -7,37 +7,39 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Combobox } from "@/components/ui/Combobox";
 import { useProvider } from "@/contexts/ProviderContext";
 
-const NHENTAI_TAGS = [
-  { label: "sole female", value: "sole-female" },
-  { label: "sole male", value: "sole-male" },
-  { label: "big breasts", value: "big-breasts" },
-  { label: "small breasts", value: "small-breasts" },
-  { label: "blonde", value: "blonde" },
-  { label: "anal", value: "anal" },
-  { label: "oral", value: "oral" },
-  { label: "nakadashi", value: "nakadashi" },
-  { label: "gangbang", value: "gangbang" },
-  { label: "tentacles", value: "tentacles" },
-  { label: "yaoi", value: "yaoi" },
-  { label: "yuri", value: "yuri" },
-  { label: "futanari", value: "futanari" },
-  { label: "elf", value: "elf" },
-  { label: "catgirl", value: "catgirl" },
-  { label: "maid", value: "maid" },
-  { label: "nurse", value: "nurse" },
-  { label: "schoolgirl", value: "schoolgirl" },
-  { label: "mind control", value: "mind-control" },
-  { label: "netorare", value: "netorare" },
-  { label: "monstergirl", value: "monstergirl" },
-  { label: "swimsuit", value: "swimsuit" },
-  { label: "glasses", value: "glasses" },
-  { label: "twintails", value: "twintails" },
-  { label: "short hair", value: "short-hair" },
-  { label: "long hair", value: "long-hair" },
-  { label: "ahegao", value: "ahegao" },
-  { label: "paizuri", value: "paizuri" },
-  { label: "footjob", value: "footjob" },
-  { label: "handjob", value: "handjob" },
+const MANHWAREAD_GENRES = [
+  { label: "Action", value: "action" },
+  { label: "Adult", value: "adult" },
+  { label: "Adventure", value: "adventure" },
+  { label: "Comedy", value: "comedy" },
+  { label: "Drama", value: "drama" },
+  { label: "Ecchi", value: "ecchi" },
+  { label: "Fantasy", value: "fantasy" },
+  { label: "Gender Bender", value: "gender-bender" },
+  { label: "Harem", value: "harem" },
+  { label: "Hentai", value: "hentai" },
+  { label: "Historical", value: "historical" },
+  { label: "Horror", value: "horror" },
+  { label: "Isekai", value: "isekai" },
+  { label: "Josei", value: "josei" },
+  { label: "Mahou Shoujo", value: "mahou-shoujo" },
+  { label: "Martial Arts", value: "martial-arts" },
+  { label: "Mature", value: "mature" },
+  { label: "Mystery", value: "mystery" },
+  { label: "Psychological", value: "psychological" },
+  { label: "Romance", value: "romance" },
+  { label: "Sci-fi", value: "sci-fi" },
+  { label: "Seinen", value: "seinen" },
+  { label: "Shoujo", value: "shoujo" },
+  { label: "Shounen", value: "shounen" },
+  { label: "Slice of Life", value: "slice-of-life" },
+  { label: "Smut", value: "smut" },
+  { label: "Sports", value: "sports" },
+  { label: "Supernatural", value: "supernatural" },
+  { label: "Tragedy", value: "tragedy" },
+  { label: "Webtoons", value: "webtoons" },
+  { label: "Yaoi", value: "yaoi" },
+  { label: "Yuri", value: "yuri" },
 ];
 
 export default function SearchPage() {
@@ -78,20 +80,6 @@ export default function SearchPage() {
       }
     },
     [selectedProvider, loadLatest, loadPopular, setBrowseMode, setPage, filters]
-  );
-
-  const handleSortChange = useCallback(
-    (value: string) => {
-      const newFilters = { ...filters, sort: value };
-      setFilters(newFilters);
-      setPage(1);
-      if (browseMode === "recent") {
-        loadLatest(selectedProvider, 1, newFilters);
-      } else {
-        loadPopular(selectedProvider, 1, newFilters);
-      }
-    },
-    [selectedProvider, browseMode, loadLatest, loadPopular, filters, setFilters, setPage]
   );
 
   const handleTagsChange = useCallback(
@@ -225,7 +213,7 @@ export default function SearchPage() {
               value={browseMode}
               onChange={handleBrowseModeChange}
             />
-            {selectedProvider === "nhentai" && (
+            {selectedProvider === "manhwaread" && (
               <button
                 type="button"
                 onClick={() => setFiltersOpen(!filtersOpen)}
@@ -253,44 +241,27 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Collapsible filter panel (nhentai only) */}
-        {mode === "browse" && selectedProvider === "nhentai" && filtersOpen && (
+        {/* Collapsible filter panel (manhwaread) */}
+        {mode === "browse" && selectedProvider === "manhwaread" && filtersOpen && (
           <div className="mt-4 p-4 rounded-xl border border-border bg-bg-raised animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Sort (only shown when browsing popular) */}
-              {browseMode === "popular" && (
-                <div>
-                  <label className="block text-xs font-medium text-muted mb-2">Sort by</label>
-                  <SegmentedControl
-                    options={[
-                      { value: "popular", label: "All Time" },
-                      { value: "popular-today", label: "Today" },
-                      { value: "popular-week", label: "Week" },
-                    ]}
-                    value={filters.sort || "popular"}
-                    onChange={handleSortChange}
-                    className="w-full"
-                  />
-                </div>
-              )}
-
-              {/* Tags */}
-              <div className={browseMode === "recent" ? "md:col-span-2" : ""}>
-                <label className="block text-xs font-medium text-muted mb-2">Tags</label>
+              {/* Genres */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-muted mb-2">Genres</label>
                 <Combobox
-                  options={NHENTAI_TAGS}
+                  options={MANHWAREAD_GENRES}
                   selected={filters.tags}
                   onChange={handleTagsChange}
-                  searchPlaceholder="Search tags..."
+                  searchPlaceholder="Search genres..."
                 />
               </div>
             </div>
 
-            {/* Popular tags quick select */}
+            {/* Popular genres quick select */}
             <div className="mt-4">
-              <label className="block text-xs font-medium text-muted mb-2">Popular tags</label>
+              <label className="block text-xs font-medium text-muted mb-2">Popular genres</label>
               <div className="flex flex-wrap gap-2">
-                {NHENTAI_TAGS.slice(0, 12).map((tag) => (
+                {MANHWAREAD_GENRES.slice(0, 12).map((tag) => (
                   <button
                     key={tag.value}
                     type="button"

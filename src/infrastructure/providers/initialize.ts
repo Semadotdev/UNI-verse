@@ -25,7 +25,7 @@ export async function initializeBuiltinProviders(): Promise<void> {
         version: provider.version,
         lang: provider.lang,
         enabled: true,
-        nsfw: provider.id === 'nhentai',
+        nsfw: provider.id === 'manhwaread',
         hasSearch: provider.hasSearch,
         hasPopular: provider.hasPopular,
         hasLatest: provider.hasLatest,
@@ -33,6 +33,7 @@ export async function initializeBuiltinProviders(): Promise<void> {
       update: {
         name: provider.name,
         version: provider.version,
+        nsfw: provider.id === 'manhwaread',
       },
     });
 

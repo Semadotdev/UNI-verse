@@ -20,30 +20,23 @@ export default function LibraryPage() {
     deleteFolder,
   } = useLibrary();
 
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
-  const [editingFolderName, setEditingFolderName] = useState("");
-  const [contextMenu, setContextMenu] = useState<{ folderId: string; x: number; y: number } | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [folderActions, setFolderActions] = useState<{ id: string; name: string } | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmDeleteFolder, setConfirmDeleteFolder] = useState<{ id: string; name: string } | null>(null);
-  const newFolderInputRef = useRef<HTMLInputElement>(null);
-  const editFolderInputRef = useRef<HTMLInputElement>(null);
+  const createInputRef = useRef<HTMLInputElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (showNewFolderInput) newFolderInputRef.current?.focus();
-  }, [showNewFolderInput]);
+    if (showCreateModal) createInputRef.current?.focus();
+  }, [showCreateModal]);
 
   useEffect(() => {
-    if (editingFolderId) editFolderInputRef.current?.focus();
-  }, [editingFolderId]);
-
-  useEffect(() => {
-    if (!contextMenu) return;
-    const handler = () => setContextMenu(null);
-    window.addEventListener("click", handler);
-    return () => window.removeEventListener("click", handler);
-  }, [contextMenu]);
+    if (renameTarget) renameInputRef.current?.focus();
+  }, [renameTarget]);
 
   const handleRemove = useCallback(
     (libraryId: string) => {
@@ -58,27 +51,26 @@ export default function LibraryPage() {
     try {
       await createFolder(name);
       setNewFolderName("");
-      setShowNewFolderInput(false);
+      setShowCreateModal(false);
     } catch {
       // duplicate name or error
     }
   };
 
   const handleRenameFolder = async () => {
-    if (!editingFolderId) return;
-    const name = editingFolderName.trim();
+    if (!renameTarget) return;
+    const name = renameName.trim();
     if (!name) return;
     try {
-      await renameFolder(editingFolderId, name);
-      setEditingFolderId(null);
-      setEditingFolderName("");
+      await renameFolder(renameTarget.id, name);
+      setRenameTarget(null);
+      setRenameName("");
     } catch {
       // duplicate name or error
     }
   };
 
   const handleDeleteFolder = async (folderId: string) => {
-    setContextMenu(null);
     const folder = folders.find((f) => f.id === folderId);
     setConfirmDeleteFolder({ id: folderId, name: folder?.name ?? "this folder" });
   };
@@ -134,88 +126,45 @@ export default function LibraryPage() {
 
         {folders.map((folder) => (
           <div key={folder.id} className="relative whitespace-nowrap">
-            {editingFolderId === folder.id ? (
-              <input
-                ref={editFolderInputRef}
-                value={editingFolderName}
-                onChange={(e) => setEditingFolderName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleRenameFolder();
-                  if (e.key === "Escape") setEditingFolderId(null);
-                }}
-                onBlur={handleRenameFolder}
-                className="px-3 py-1.5 text-sm rounded-lg bg-surface border border-primary text-white outline-none w-28"
-              />
-            ) : (
-              <button
-                onClick={() => setSelectedFolderId(folder.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setContextMenu({ folderId: folder.id, x: e.clientX, y: e.clientY });
-                }}
-                className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                  selectedFolderId === folder.id
-                    ? "bg-primary text-white"
-                    : "bg-surface hover:bg-surface-hover text-muted"
-                }`}
-              >
-                {folder.name}
-                <span className="ml-1 opacity-60">{folder.count}</span>
-              </button>
-            )}
+            <button
+              onClick={() => setSelectedFolderId(folder.id)}
+              className={`px-3 py-1.5 pr-7 text-sm rounded-lg transition-colors ${
+                selectedFolderId === folder.id
+                  ? "bg-primary text-white"
+                  : "bg-surface hover:bg-surface-hover text-muted"
+              }`}
+            >
+              {folder.name}
+              <span className="ml-1 opacity-60">{folder.count}</span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setFolderActions({ id: folder.id, name: folder.name });
+              }}
+              className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors ${
+                selectedFolderId === folder.id
+                  ? "hover:bg-white/20 text-white/70"
+                  : "hover:bg-zinc-600 text-zinc-400"
+              }`}
+              aria-label={`Settings for ${folder.name}`}
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="5" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="12" cy="19" r="2" />
+              </svg>
+            </button>
           </div>
         ))}
 
-        {showNewFolderInput ? (
-          <input
-            ref={newFolderInputRef}
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreateFolder();
-              if (e.key === "Escape") { setShowNewFolderInput(false); setNewFolderName(""); }
-            }}
-            onBlur={() => { if (!newFolderName.trim()) setShowNewFolderInput(false); }}
-            placeholder="Folder name"
-            className="px-3 py-1.5 text-sm rounded-lg bg-surface border border-primary text-white outline-none w-32"
-          />
-        ) : (
-          <button
-            onClick={() => setShowNewFolderInput(true)}
-            className="px-3 py-1.5 text-sm rounded-lg border border-dashed border-zinc-600 hover:border-zinc-400 text-muted hover:text-white transition-colors whitespace-nowrap"
-          >
-            + New Folder
-          </button>
-        )}
-      </div>
-
-      {/* Context menu */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl py-1 min-w-[140px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-3 py-1.5 text-sm rounded-lg border border-dashed border-zinc-600 hover:border-zinc-400 text-muted hover:text-white transition-colors whitespace-nowrap"
         >
-          <button
-            onClick={() => {
-              const folder = folders.find((f) => f.id === contextMenu.folderId);
-              if (folder) {
-                setEditingFolderId(contextMenu.folderId);
-                setEditingFolderName(folder.name);
-              }
-              setContextMenu(null);
-            }}
-            className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-zinc-200"
-          >
-            Rename
-          </button>
-          <button
-            onClick={() => handleDeleteFolder(contextMenu.folderId)}
-            className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-red-400"
-          >
-            Delete Folder
-          </button>
-        </div>
-      )}
+          + New Folder
+        </button>
+      </div>
 
       {/* Manga grid */}
       {loading ? (
@@ -249,6 +198,116 @@ export default function LibraryPage() {
           ))}
         </div>
       )}
+
+      {/* Folder actions modal */}
+      <Modal
+        open={folderActions !== null}
+        onClose={() => setFolderActions(null)}
+        title={folderActions?.name}
+        size="sm"
+      >
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={() => {
+              if (folderActions) {
+                setRenameTarget({ id: folderActions.id, name: folderActions.name });
+                setRenameName(folderActions.name);
+              }
+              setFolderActions(null);
+            }}
+            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-left rounded-lg hover:bg-zinc-800 text-zinc-200 transition-colors"
+          >
+            <svg className="h-4 w-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+            </svg>
+            Rename
+          </button>
+          <button
+            onClick={() => {
+              if (folderActions) handleDeleteFolder(folderActions.id);
+              setFolderActions(null);
+            }}
+            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-left rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            </svg>
+            Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Create Folder Modal */}
+      <Modal
+        open={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setNewFolderName(""); }}
+        title="New Folder"
+        size="sm"
+        footer={
+          <>
+            <button
+              onClick={() => { setShowCreateModal(false); setNewFolderName(""); }}
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateFolder}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all"
+            >
+              Create
+            </button>
+          </>
+        }
+      >
+        <input
+          ref={createInputRef}
+          value={newFolderName}
+          onChange={(e) => setNewFolderName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleCreateFolder();
+            if (e.key === "Escape") { setShowCreateModal(false); setNewFolderName(""); }
+          }}
+          placeholder="Folder name"
+          className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-primary transition-colors"
+        />
+      </Modal>
+
+      {/* Rename Folder Modal */}
+      <Modal
+        open={renameTarget !== null}
+        onClose={() => { setRenameTarget(null); setRenameName(""); }}
+        title="Rename Folder"
+        size="sm"
+        footer={
+          <>
+            <button
+              onClick={() => { setRenameTarget(null); setRenameName(""); }}
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleRenameFolder}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all"
+            >
+              Save
+            </button>
+          </>
+        }
+      >
+        <input
+          ref={renameInputRef}
+          value={renameName}
+          onChange={(e) => setRenameName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleRenameFolder();
+            if (e.key === "Escape") { setRenameTarget(null); setRenameName(""); }
+          }}
+          placeholder="Folder name"
+          className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-primary transition-colors"
+        />
+      </Modal>
 
       {/* Confirm remove manga modal */}
       <Modal
@@ -306,8 +365,8 @@ export default function LibraryPage() {
         }
       >
         <p className="text-sm text-zinc-300">
-          Delete folder <span className="font-semibold text-zinc-100">"{confirmDeleteFolder?.name}"</span>?
-          Manga inside will not be deleted.
+          Delete folder <span className="font-semibold text-zinc-100">&ldquo;{confirmDeleteFolder?.name}&rdquo;</span>?
+          All manga in this folder will be moved to Uncategorized.
         </p>
       </Modal>
     </div>

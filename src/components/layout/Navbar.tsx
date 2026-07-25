@@ -72,7 +72,7 @@ export function Navbar() {
     router.push("/");
   };
 
-  const priority: Record<string, number> = { asurascans: 0, mangago: 1 };
+  const priority: Record<string, number> = { asurascans: 0 };
   const sortedProviders = [...providers].sort((a, b) => {
     const pa = priority[a.id] ?? 2;
     const pb = priority[b.id] ?? 2;

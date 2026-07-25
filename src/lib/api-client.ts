@@ -2,17 +2,6 @@ import type { ApiResponse, PaginationMeta } from "@/domain/types/api";
 
 const API_BASE = "";
 
-const DIRECT_HOSTNAMES = ["i1.nhentai.net", "i2.nhentai.net", "i3.nhentai.net"];
-
-function isDirectUrl(url: string): boolean {
-  try {
-    const hostname = new URL(url).hostname;
-    return DIRECT_HOSTNAMES.some((h) => hostname === h);
-  } catch {
-    return false;
-  }
-}
-
 export class ApiClient {
   private static async request<T>(
     url: string,
@@ -83,7 +72,6 @@ export class ApiClient {
   }
 
   static imageUrl(url: string, headers?: Record<string, string>): string {
-    if (isDirectUrl(url)) return url;
     const params = new URLSearchParams({ url });
     if (headers) {
       params.set("headers", JSON.stringify(headers));
