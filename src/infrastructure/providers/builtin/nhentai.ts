@@ -28,7 +28,13 @@ const HEADERS = {
 async function fetchHtml(url: string): Promise<string> {
   const res = await withRetry(async () => {
     const r = await fetch(url, { headers: HEADERS });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    if (!r.ok) {
+      const contentType = r.headers.get('content-type') || '';
+      if (r.status === 403 && contentType.includes('text/html')) {
+        return r;
+      }
+      throw new Error(`HTTP ${r.status}`);
+    }
     return r;
   });
   return res.text();

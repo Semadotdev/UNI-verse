@@ -39,11 +39,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} bg-bg text-zinc-100 antialiased`}>
+      <body className={`${inter.className} bg-bg text-zinc-100 antialiased flex flex-col min-h-screen`}>
         <Providers>
           <ThemeApplier />
           <Navbar />
-          <main className="pb-20 pt-4 md:pb-4 md:pt-20 min-h-screen">
+          <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
             {children}
           </main>
           <ToastContainer />

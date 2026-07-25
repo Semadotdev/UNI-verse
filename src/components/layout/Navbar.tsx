@@ -80,7 +80,7 @@ export function Navbar() {
     return a.name.localeCompare(b.name);
   });
 
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || pathname === "/register") return null;
 
   return (
     <>
