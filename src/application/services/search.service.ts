@@ -67,8 +67,14 @@ export class SearchService {
   }
 
   private async findProvider(providerId: string): Promise<Provider> {
-    if (providerRegistry.getAll().length === 0) {
-      await initializeBuiltinProviders();
+    try {
+      if (providerRegistry.getAll().length === 0) {
+        logger.info('No providers registered, initializing builtin providers');
+        await initializeBuiltinProviders();
+      }
+    } catch (error) {
+      logger.error('Failed to initialize providers', error);
+      throw new ProviderError('Provider initialization failed', providerId, 'PROVIDER_INIT_FAILED');
     }
     const meta = providerRegistry.getEnabled().find((p) => p.providerId === providerId);
     if (!meta) throw ProviderError.notFound(providerId);
