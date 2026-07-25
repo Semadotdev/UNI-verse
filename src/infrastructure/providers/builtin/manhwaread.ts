@@ -4,34 +4,112 @@ import type { Chapter } from '@/domain/entities/chapter';
 import type { Page } from '@/domain/entities/page';
 import type { PaginatedResult } from '@/domain/types/api';
 import { MangaStatus } from '@/domain/entities/manga';
-import { withRetry } from '@/shared/utils/retry';
 import * as cheerio from 'cheerio';
+import { createLogger } from '@/shared/utils/logger';
+
+const logger = createLogger('ManhwaRead');
 
 const BASE_URL = 'https://manhwaread.com';
 
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-};
+function getBrowserHeaders(): Record<string, string> {
+  return {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+    'Connection': 'keep-alive',
+  };
+}
 
 function isCloudflareChallenge(html: string): boolean {
   return html.includes('Just a moment') ||
     html.includes('Verify you are human') ||
-    html.includes('_cf_chl_opt');
+    html.includes('_cf_chl_opt') ||
+    html.includes('challenge-platform') ||
+    html.includes('cf-turnstile') ||
+    html.includes('cloudflare');
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await withRetry(async () => {
-    const r = await fetch(url, { headers: HEADERS });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r;
-  });
-  const html = await res.text();
-  if (isCloudflareChallenge(html)) {
-    throw new Error('Cloudflare challenge — site is blocking server requests');
+  logger.info(`Fetching ${url}`);
+
+  const maxRetries = 3;
+  let lastError: Error | undefined;
+  let lastStatus: number | undefined;
+  let lastBodySnippet = '';
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+
+      let r: Response;
+      try {
+        r = await fetch(url, {
+          headers: getBrowserHeaders(),
+          signal: controller.signal,
+          redirect: 'follow',
+        });
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      lastStatus = r.status;
+      const text = await r.text();
+      lastBodySnippet = text.slice(0, 1000);
+
+      if (!r.ok) {
+        const msg = `HTTP ${r.status} ${r.statusText}`;
+        logger.warn(`Fetch attempt ${attempt}/${maxRetries} failed for ${url}`, {
+          status: r.status,
+          statusText: r.statusText,
+          snippet: lastBodySnippet.slice(0, 200),
+        });
+
+        // Only retry on 5xx — 4xx is unlikely to resolve
+        if (r.status >= 500) {
+          lastError = new Error(msg);
+          if (attempt < maxRetries) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+            continue;
+          }
+        }
+        throw new Error(msg);
+      }
+
+      if (isCloudflareChallenge(text)) {
+        logger.warn(`Cloudflare challenge detected on ${url}`, { snippet: lastBodySnippet.slice(0, 200) });
+        throw new Error('Cloudflare challenge — site is blocking server requests');
+      }
+
+      logger.info(`Fetch succeeded for ${url}`, { status: r.status, length: text.length });
+      return text;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      logger.error(`Fetch attempt ${attempt}/${maxRetries} error for ${url}`, {
+        error: lastError.message,
+        status: lastStatus,
+      });
+
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
-  return html;
+
+  logger.error(`All ${maxRetries} fetch attempts failed for ${url}`, {
+    error: lastError?.message,
+    status: lastStatus,
+    snippet: lastBodySnippet.slice(0, 500),
+  });
+  throw lastError ?? new Error(`All fetch attempts failed for ${url}`);
 }
 
 function extractSlug(href: string): string {
@@ -256,10 +334,12 @@ export class ManhwaReadProvider implements Provider {
         ? `${BASE_URL}/top-manhwa/`
         : `${BASE_URL}/top-manhwa/page/${page}/`;
     }
+
     const html = await fetchHtml(url);
     const items = parseMangaList(html);
     const totalPages = parseTotalPages(html);
 
+    logger.info(`getPopular parsed ${items.length} items, ${totalPages} pages from ${url}`);
     return { data: items, page, totalPages, hasMore: page < totalPages };
   }
 
@@ -275,10 +355,12 @@ export class ManhwaReadProvider implements Provider {
         ? `${BASE_URL}/manhwa/`
         : `${BASE_URL}/manhwa/page/${page}/`;
     }
+
     const html = await fetchHtml(url);
     const items = parseMangaList(html);
     const totalPages = parseTotalPages(html);
 
+    logger.info(`getLatest parsed ${items.length} items, ${totalPages} pages from ${url}`);
     return { data: items, page, totalPages, hasMore: page < totalPages };
   }
 }
