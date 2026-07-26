@@ -33,14 +33,13 @@ function isCloudflareChallenge(html: string): boolean {
     html.includes('Verify you are human') ||
     html.includes('_cf_chl_opt') ||
     html.includes('challenge-platform') ||
-    html.includes('cf-turnstile') ||
-    html.includes('cloudflare');
+    html.includes('cf-turnstile');
 }
 
 async function fetchHtml(url: string): Promise<string> {
   logger.info(`Fetching ${url}`);
 
-  const maxRetries = 3;
+  const maxRetries = 2;
   let lastError: Error | undefined;
   let lastStatus: number | undefined;
   let lastBodySnippet = '';
@@ -48,7 +47,7 @@ async function fetchHtml(url: string): Promise<string> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20000);
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
       let r: Response;
       try {
