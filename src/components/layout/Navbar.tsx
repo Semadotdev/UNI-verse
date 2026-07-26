@@ -9,6 +9,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ProviderDropdown } from "@/components/navbar/ProviderDropdown";
 import { Modal } from "@/components/ui/Modal";
 import { useProvider } from "@/contexts/ProviderContext";
+import { useToast } from "@/contexts/ToastContext";
 import type { User } from "@supabase/supabase-js";
 
 interface ProviderInfo {
@@ -35,6 +36,7 @@ export function Navbar() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const { selectedProvider, setSelectedProvider } = useProvider();
+  const { addToast } = useToast();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -48,6 +50,15 @@ export function Navbar() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      setDeferredPrompt(null);
+      addToast("App installed successfully!", "success");
+    };
+    window.addEventListener("appinstalled", handler);
+    return () => window.removeEventListener("appinstalled", handler);
+  }, [addToast]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
