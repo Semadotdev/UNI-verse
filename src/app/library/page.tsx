@@ -18,6 +18,7 @@ export default function LibraryPage() {
     createFolder,
     renameFolder,
     deleteFolder,
+    refresh,
   } = useLibrary();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -37,6 +38,10 @@ export default function LibraryPage() {
   useEffect(() => {
     if (renameTarget) renameInputRef.current?.focus();
   }, [renameTarget]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const handleRemove = useCallback(
     (libraryId: string) => {
@@ -77,7 +82,7 @@ export default function LibraryPage() {
 
   const totalItems = folders.reduce((sum, f) => sum + f.count, 0);
 
-  const mangaItems: (Manga & { libraryId: string })[] = library.map((item) => ({
+  const mangaItems: (Manga & { libraryId: string; readProgress: number })[] = library.map((item) => ({
     id: item.mangaId,
     providerId: item.providerId,
     title: item.title,
@@ -89,7 +94,9 @@ export default function LibraryPage() {
     authors: [],
     artists: [],
     lastUpdate: null,
+    latestChapter: item.lastReadChapter ?? undefined,
     libraryId: item.id,
+    readProgress: item.readProgress,
   }));
 
   return (
@@ -193,6 +200,8 @@ export default function LibraryPage() {
             <MangaCard
               key={`${m.providerId}-${m.id}`}
               manga={m}
+              showChapterBadge
+              readProgress={m.readProgress}
               onRemove={() => handleRemove(m.libraryId)}
             />
           ))}

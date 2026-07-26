@@ -11,10 +11,32 @@ export class LibraryService {
     } else if (folderId) {
       where.folderId = folderId;
     }
-    return prisma.library.findMany({
+    const items = await prisma.library.findMany({
       where,
       include: { bookmarks: true },
       orderBy: { updatedAt: 'desc' },
+    });
+
+    if (items.length === 0) return items;
+
+    const history = await prisma.readingHistory.findMany({
+      where: {
+        userId,
+        OR: items.map(i => ({ providerId: i.providerId, mangaId: i.mangaId })),
+      },
+    });
+    const historyMap = new Map(
+      history.map(h => [`${h.providerId}:${h.mangaId}`, h])
+    );
+
+    return items.map(item => {
+      const h = historyMap.get(`${item.providerId}:${item.mangaId}`);
+      return {
+        ...item,
+        lastReadChapter: h?.chapterNum ?? null,
+        readProgress: h?.progress ?? 0,
+        lastReadAt: h?.readAt ?? null,
+      };
     });
   }
 

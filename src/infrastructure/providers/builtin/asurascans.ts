@@ -159,7 +159,8 @@ export class AsuraScansProvider implements Provider {
       urls.push(match[0]);
     }
 
-    return urls.map((url, i) => ({
+    const unique = [...new Set(urls)];
+    return unique.map((url, i) => ({
       index: i,
       url,
       headers: { Referer: SITE_BASE },

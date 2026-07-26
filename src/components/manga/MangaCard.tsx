@@ -10,9 +10,10 @@ interface MangaCardProps {
   manga: Manga;
   showChapterBadge?: boolean;
   onRemove?: () => void;
+  readProgress?: number;
 }
 
-export function MangaCard({ manga, showChapterBadge = false, onRemove }: MangaCardProps) {
+export function MangaCard({ manga, showChapterBadge = false, onRemove, readProgress }: MangaCardProps) {
   const imageUrl = manga.cover ? ApiClient.imageUrl(manga.cover) : null;
   const [imgError, setImgError] = useState(false);
 
@@ -78,6 +79,11 @@ export function MangaCard({ manga, showChapterBadge = false, onRemove }: MangaCa
             </svg>
           </div>
         </div>
+
+        {/* Read indicator — library view only */}
+        {onRemove && manga.latestChapter != null && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary/80" />
+        )}
       </div>
 
       {/* Title */}

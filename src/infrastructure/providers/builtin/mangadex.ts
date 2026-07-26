@@ -105,6 +105,7 @@ function mapManga(md: MangaDexManga): Manga {
     authors: getAuthor(md) ? [getAuthor(md)] : [],
     artists: getArtist(md) ? [getArtist(md)] : [],
     lastUpdate: null,
+    latestChapter: md.attributes.lastChapter ? parseFloat(md.attributes.lastChapter) || undefined : undefined,
   };
 }
 

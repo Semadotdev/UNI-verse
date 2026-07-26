@@ -6,7 +6,7 @@ export const BUILTIN_PROVIDER_IDS = [
   'asurascans',
   'comick',
   'mangafire',
-  'manhwaread',
+  'manhwa18',
 ] as const;
 
 export type BuiltinProviderId = (typeof BUILTIN_PROVIDER_IDS)[number];

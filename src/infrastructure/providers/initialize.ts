@@ -16,7 +16,7 @@ function createFallbackMetadata(provider: Provider): InstalledProvider {
     lang: provider.lang,
     description: null,
     icon: null,
-    nsfw: provider.id === 'manhwaread',
+    nsfw: provider.id === 'manhwa18',
     enabled: true,
     hasSearch: provider.hasSearch,
     hasPopular: provider.hasPopular,
@@ -49,7 +49,7 @@ export async function initializeBuiltinProviders(): Promise<void> {
           version: provider.version,
           lang: provider.lang,
           enabled: true,
-          nsfw: provider.id === 'manhwaread',
+          nsfw: provider.id === 'manhwa18',
           hasSearch: provider.hasSearch,
           hasPopular: provider.hasPopular,
           hasLatest: provider.hasLatest,
@@ -57,7 +57,7 @@ export async function initializeBuiltinProviders(): Promise<void> {
         update: {
           name: provider.name,
           version: provider.version,
-          nsfw: provider.id === 'manhwaread',
+          nsfw: provider.id === 'manhwa18',
         },
       });
 

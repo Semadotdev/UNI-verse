@@ -14,6 +14,9 @@ interface LibraryItem {
   folderId: string | null;
   addedAt: string;
   updatedAt: string;
+  lastReadChapter: number | null;
+  readProgress: number;
+  lastReadAt: string | null;
 }
 
 interface Folder {
@@ -87,6 +90,21 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     refreshFolders();
   }, [refreshFolders]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        const url = selectedFolderId !== null
+          ? `/api/library?folderId=${selectedFolderId}`
+          : "/api/library";
+        ApiClient.get<LibraryItem[]>(url)
+          .then((items) => setLibrary(items))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [selectedFolderId]);
 
   const addToLibrary = async (providerId: string, mangaId: string, title: string, coverUrl: string, folderId?: string | null) => {
     try {
