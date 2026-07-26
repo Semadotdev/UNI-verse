@@ -38,6 +38,23 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") setDeferredPrompt(null);
+  };
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -158,6 +175,24 @@ export function Navbar() {
           ))}
         </div>
 
+        {deferredPrompt && (
+          <>
+            <div className="my-4 border-t border-zinc-800" />
+            <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">App</p>
+            <button
+              onClick={handleInstall}
+              className="flex w-full items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-primary hover:bg-primary/10 transition-all"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Install App
+            </button>
+          </>
+        )}
+
         {user && (
           <>
             <div className="my-4 border-t border-zinc-800" />
@@ -245,6 +280,21 @@ export function Navbar() {
           <div className="w-px h-6 bg-border mx-1" />
 
           <ProviderDropdown />
+
+          {deferredPrompt && (
+            <button
+              onClick={handleInstall}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200"
+              title="Install App"
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span className="font-medium hidden lg:inline">Install</span>
+            </button>
+          )}
 
           {/* Auth button */}
           {user ? (
