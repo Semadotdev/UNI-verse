@@ -78,6 +78,17 @@ function parseMangaList(html: string): Manga[] {
   return items;
 }
 
+function applyFilters(items: Manga[], filters?: ProviderFilters): Manga[] {
+  if (!filters) return items;
+  let filtered = items;
+  if (filters.minChapters && filters.minChapters > 0) {
+    filtered = filtered.filter(
+      (m) => m.latestChapter != null && m.latestChapter >= filters.minChapters!
+    );
+  }
+  return filtered;
+}
+
 function parseTotalPages(html: string): number {
   const $ = cheerio.load(html);
   let maxPage = 1;
@@ -243,6 +254,61 @@ export class Manhwa18Provider implements Provider {
     page = 1,
     filters?: ProviderFilters
   ): Promise<PaginatedResult<Manga>> {
+    const hasChapterFilter = (filters?.minChapters ?? 0) > 0;
+
+    if (hasChapterFilter && !filters?.tags?.length) {
+      const MAX_PAGES = 4;
+      const allItems: Manga[] = [];
+      const seenAll = new Set<string>();
+      let totalPages = 1;
+
+      for (let p = 1; p <= MAX_PAGES; p++) {
+        const url = p === 1 ? `${BASE_URL}/` : `${BASE_URL}/page/${p}`;
+        try {
+          const html = await fetchHtml(url);
+          const $ = cheerio.load(html);
+
+          $('.hot-item').each((_, el) => {
+            const $el = $(el);
+            const $link = $el.find('a').first();
+            const href = $link.attr('href') || '';
+            const slug = extractSlug(href);
+            if (!slug || seenAll.has(slug)) return;
+            seenAll.add(slug);
+
+            const title = $link.attr('title') || $el.find('h4').text().trim() || '';
+            const cover = $el.find('img').attr('data-src') || $el.find('img').attr('src') || '';
+            const chapterBadge = $el.find('.chapter-badges').text().trim();
+            const latestChapter = chapterBadge ? extractChapterNumber(chapterBadge) || null : null;
+
+            if (slug && title) {
+              allItems.push({
+                id: slug, providerId: 'manhwa18', title: title.trim(),
+                alternativeTitles: [], description: '', cover,
+                status: MangaStatus.UNKNOWN, genres: [], authors: [],
+                artists: [], lastUpdate: null, latestChapter: latestChapter ?? undefined,
+              });
+            }
+          });
+
+          if (allItems.length === 0 && p > 1) break;
+          if (p === 1) totalPages = parseTotalPages(html);
+        } catch { break; }
+      }
+
+      const filtered = applyFilters(allItems, filters);
+      const pageSize = 20;
+      const start = (page - 1) * pageSize;
+      const paged = filtered.slice(start, start + pageSize);
+
+      return {
+        data: paged,
+        page,
+        totalPages: Math.max(1, Math.ceil(filtered.length / pageSize)),
+        hasMore: start + pageSize < filtered.length,
+      };
+    }
+
     let url: string;
     if (filters?.tags?.length) {
       const slug = filters.tags[0];
@@ -297,9 +363,6 @@ export class Manhwa18Provider implements Provider {
 
     const totalPages = filters?.tags?.length ? 1 : parseTotalPages(html);
 
-    logger.info(
-      `getPopular parsed ${items.length} items, ${totalPages} pages from ${url}`
-    );
     return { data: items, page, totalPages, hasMore: page < totalPages };
   }
 
@@ -307,6 +370,43 @@ export class Manhwa18Provider implements Provider {
     page = 1,
     filters?: ProviderFilters
   ): Promise<PaginatedResult<Manga>> {
+    const hasChapterFilter = (filters?.minChapters ?? 0) > 0;
+
+    if (hasChapterFilter) {
+      const MAX_PAGES = 4;
+      const allItems: Manga[] = [];
+      const seen = new Set<string>();
+      let totalPages = 1;
+
+      for (let p = 1; p <= MAX_PAGES; p++) {
+        const url = p === 1 ? `${BASE_URL}/` : `${BASE_URL}/page/${p}`;
+        try {
+          const html = await fetchHtml(url);
+          const pageItems = parseMangaList(html);
+          if (pageItems.length === 0) break;
+          for (const item of pageItems) {
+            if (!seen.has(item.id)) {
+              seen.add(item.id);
+              allItems.push(item);
+            }
+          }
+          if (p === 1) totalPages = parseTotalPages(html);
+        } catch { break; }
+      }
+
+      const filtered = applyFilters(allItems, filters);
+      const pageSize = 20;
+      const start = (page - 1) * pageSize;
+      const paged = filtered.slice(start, start + pageSize);
+
+      return {
+        data: paged,
+        page,
+        totalPages: Math.max(1, Math.ceil(filtered.length / pageSize)),
+        hasMore: start + pageSize < filtered.length,
+      };
+    }
+
     let url: string;
     if (filters?.tags?.length) {
       const slug = filters.tags[0];
@@ -319,9 +419,6 @@ export class Manhwa18Provider implements Provider {
     const items = parseMangaList(html);
     const totalPages = filters?.tags?.length ? 1 : parseTotalPages(html);
 
-    logger.info(
-      `getLatest parsed ${items.length} items, ${totalPages} pages from ${url}`
-    );
     return { data: items, page, totalPages, hasMore: page < totalPages };
   }
 }

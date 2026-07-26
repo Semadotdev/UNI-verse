@@ -6,6 +6,8 @@ import type { PaginatedResult } from '../types/api';
 export interface ProviderFilters {
   tags?: string[];
   sort?: string;
+  status?: string;
+  minChapters?: number;
 }
 
 export interface Provider {

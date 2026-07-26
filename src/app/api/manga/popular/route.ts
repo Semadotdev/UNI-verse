@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const tags = searchParams.get('tags')?.split(',').filter(Boolean);
     const sort = searchParams.get('sort') || undefined;
+    const status = searchParams.get('status') || undefined;
+    const minChapters = parseInt(searchParams.get('minChapters') || '0', 10) || undefined;
 
     if (!providerId) {
       const providers = await providerService.getEnabled();
@@ -24,7 +26,7 @@ export async function GET(request: NextRequest) {
       providerId = enabled.providerId;
     }
 
-    const filters: ProviderFilters | undefined = (tags?.length || sort) ? { tags, sort } : undefined;
+    const filters: ProviderFilters | undefined = (tags?.length || sort || status || minChapters) ? { tags, sort, status, minChapters } : undefined;
     const results = await searchService.getPopular(providerId, page, filters);
     return NextResponse.json(successResponse(results.data, {
       page: results.page,

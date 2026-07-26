@@ -62,16 +62,21 @@ export default function SearchPage() {
   const { selectedProvider } = useProvider();
   const inputRef = useRef<HTMLInputElement>(null);
   const providerRef = useRef(selectedProvider);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Load latest manga on mount and when provider changes (no filters — fresh load)
+  // Load latest manga on mount and when provider changes (reset filters — fresh load)
   useEffect(() => {
     if (providerRef.current !== selectedProvider) {
       providerRef.current = selectedProvider;
       setPage(1);
+      const resetFilters = { tags: [], sort: "date", status: "", minChapters: 0 };
+      filtersRef.current = resetFilters;
+      setFilters(resetFilters);
     }
     loadLatest(selectedProvider, 1);
   }, [selectedProvider, loadLatest, setPage]);
@@ -112,6 +117,38 @@ export default function SearchPage() {
       handleTagsChange(newTags);
     },
     [filters.tags, handleTagsChange]
+  );
+
+  const handleStatusChange = useCallback(
+    (status: string) => {
+      const newFilters = { ...filters, status };
+      setFilters(newFilters);
+      setPage(1);
+      if (browseMode === "recent") {
+        loadLatest(selectedProvider, 1, newFilters);
+      } else if (mode === "search" && query) {
+        search(query, [selectedProvider], 1, newFilters);
+      } else {
+        loadPopular(selectedProvider, 1, newFilters);
+      }
+    },
+    [selectedProvider, browseMode, mode, query, loadLatest, loadPopular, search, filters, setFilters, setPage]
+  );
+
+  const handleMinChaptersChange = useCallback(
+    (minChapters: number) => {
+      const newFilters = { ...filters, minChapters };
+      setFilters(newFilters);
+      setPage(1);
+      if (browseMode === "recent") {
+        loadLatest(selectedProvider, 1, newFilters);
+      } else if (mode === "search" && query) {
+        search(query, [selectedProvider], 1, newFilters);
+      } else {
+        loadPopular(selectedProvider, 1, newFilters);
+      }
+    },
+    [selectedProvider, browseMode, mode, query, loadLatest, loadPopular, search, filters, setFilters, setPage]
   );
 
   const handleSearch = useCallback(
@@ -210,9 +247,42 @@ export default function SearchPage() {
           </div>
         </form>
 
+        {/* Active filter summary */}
+        {(filters.status || filters.minChapters > 0) && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted">Active filters:</span>
+            {filters.status && (
+              <button
+                type="button"
+                onClick={() => handleStatusChange("")}
+                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+              >
+                {filters.status === "ongoing" ? "Ongoing" : "Completed"}
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+            {filters.minChapters > 0 && (
+              <button
+                type="button"
+                onClick={() => handleMinChaptersChange(0)}
+                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+              >
+                {filters.minChapters}+ chapters
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Browse mode + Filters toggle */}
-        {mode === "browse" && (
-          <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex items-center gap-3">
+          {mode === "browse" && (
             <SegmentedControl
               options={[
                 { value: "recent", label: "Recent" },
@@ -221,36 +291,36 @@ export default function SearchPage() {
               value={browseMode}
               onChange={handleBrowseModeChange}
             />
-            {selectedProvider === "manhwa18" && (
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(!filtersOpen)}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-bg-overlay text-muted hover:text-zinc-300 hover:border-border-hover transition-colors"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="4" y1="21" x2="4" y2="14" />
-                  <line x1="4" y1="10" x2="4" y2="3" />
-                  <line x1="12" y1="21" x2="12" y2="12" />
-                  <line x1="12" y1="8" x2="12" y2="3" />
-                  <line x1="20" y1="21" x2="20" y2="16" />
-                  <line x1="20" y1="12" x2="20" y2="3" />
-                  <line x1="1" y1="14" x2="7" y2="14" />
-                  <line x1="9" y1="8" x2="15" y2="8" />
-                  <line x1="17" y1="16" x2="23" y2="16" />
-                </svg>
-                Filters
-                {(filters.tags.length > 0 || (filters.sort && filters.sort !== "date")) && (
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
-                    {filters.tags.length + (filters.sort && filters.sort !== "date" ? 1 : 0)}
-                  </span>
-                )}
-              </button>
-            )}
-          </div>
-        )}
+          )}
+          {(selectedProvider === "manhwa18" || selectedProvider === "asurascans") && (
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-bg-overlay text-muted hover:text-zinc-300 hover:border-border-hover transition-colors"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+                <line x1="1" y1="14" x2="7" y2="14" />
+                <line x1="9" y1="8" x2="15" y2="8" />
+                <line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
+              Filters
+              {(filters.tags.length > 0 || filters.status || filters.minChapters > 0 || (filters.sort && filters.sort !== "date")) && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
+                  {filters.tags.length + (filters.status ? 1 : 0) + (filters.minChapters > 0 ? 1 : 0) + (filters.sort && filters.sort !== "date" ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
 
         {/* Collapsible filter panel (manhwa18) */}
-        {mode === "browse" && selectedProvider === "manhwa18" && filtersOpen && (
+        {selectedProvider === "manhwa18" && filtersOpen && (
           <div className="mt-4 p-4 rounded-xl border border-border bg-bg-raised animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Genres */}
@@ -281,6 +351,90 @@ export default function SearchPage() {
                     }`}
                   >
                     {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chapters */}
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-muted mb-2">Chapters</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 0, label: "All" },
+                  { value: 10, label: "10+" },
+                  { value: 50, label: "50+" },
+                  { value: 100, label: "100+" },
+                  { value: 200, label: "200+" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleMinChaptersChange(opt.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.minChapters === opt.value
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible filter panel (asurascans) */}
+        {selectedProvider === "asurascans" && filtersOpen && (
+          <div className="mt-4 p-4 rounded-xl border border-border bg-bg-raised animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Status */}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-muted mb-2">Status</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "", label: "All" },
+                  { value: "ongoing", label: "Ongoing" },
+                  { value: "completed", label: "Completed" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleStatusChange(opt.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.status === opt.value
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chapters */}
+            <div>
+              <label className="block text-xs font-medium text-muted mb-2">Chapters</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 0, label: "All" },
+                  { value: 10, label: "10+" },
+                  { value: 50, label: "50+" },
+                  { value: 100, label: "100+" },
+                  { value: 200, label: "200+" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleMinChaptersChange(opt.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.minChapters === opt.value
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {opt.label}
                   </button>
                 ))}
               </div>

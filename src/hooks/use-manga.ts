@@ -9,6 +9,8 @@ import { useState, useCallback } from "react";
 export interface SearchFilters {
   tags: string[];
   sort: string;
+  status: string;
+  minChapters: number;
 }
 
 export function useSearch() {
@@ -21,7 +23,7 @@ export function useSearch() {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"browse" | "search">("browse");
   const [browseMode, setBrowseMode] = useState<"recent" | "popular">("recent");
-  const [filters, setFilters] = useState<SearchFilters>({ tags: [], sort: "date" });
+  const [filters, setFilters] = useState<SearchFilters>({ tags: [], sort: "date", status: "", minChapters: 0 });
 
   const handlePagination = (meta: { totalPages?: number; hasMore?: boolean } | undefined, data: Manga[], p: number) => {
     const more = meta?.hasMore ?? data.length >= 20;
@@ -41,6 +43,12 @@ export function useSearch() {
     }
     if (currentFilters.sort && currentFilters.sort !== "date") {
       params.set("sort", currentFilters.sort);
+    }
+    if (currentFilters.status) {
+      params.set("status", currentFilters.status);
+    }
+    if (currentFilters.minChapters > 0) {
+      params.set("minChapters", String(currentFilters.minChapters));
     }
   }, []);
 

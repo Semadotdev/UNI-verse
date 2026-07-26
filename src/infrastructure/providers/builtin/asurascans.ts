@@ -1,4 +1,4 @@
-import type { Provider } from '@/domain/interfaces/provider';
+import type { Provider, ProviderFilters } from '@/domain/interfaces/provider';
 import type { Manga } from '@/domain/entities/manga';
 import type { Chapter } from '@/domain/entities/chapter';
 import type { Page } from '@/domain/entities/page';
@@ -80,6 +80,42 @@ function mapSeriesToManga(s: AsuraSeries): Manga {
   };
 }
 
+function applyFilters(items: Manga[], filters?: ProviderFilters): Manga[] {
+  if (!filters) return items;
+  return items.filter(m => {
+    if (filters.status && m.status !== filters.status) return false;
+    if (filters.minChapters && (!m.latestChapter || m.latestChapter < filters.minChapters)) return false;
+    return true;
+  });
+}
+
+const MAX_FILTER_PAGES = 4;
+
+async function fetchWithFilters(
+  buildUrl: (offset: number) => string,
+  filters?: ProviderFilters,
+): Promise<{ items: Manga[]; totalBeforeFilter: number }> {
+  if (!filters?.status && !filters?.minChapters) {
+    const data = await fetchJson<AsuraApiResponse>(buildUrl(0));
+    return { items: (data.data || []).map(mapSeriesToManga), totalBeforeFilter: data.meta?.total || 0 };
+  }
+
+  const pagePromises = Array.from({ length: MAX_FILTER_PAGES }, (_, i) =>
+    fetchJson<AsuraApiResponse>(buildUrl(i * PAGE_SIZE))
+  );
+  const pages = await Promise.all(pagePromises);
+  const allSeries = pages.flatMap(p => p.data || []);
+  const totalBeforeFilter = pages[0]?.meta?.total || allSeries.length;
+  const filtered = applyFilters(allSeries.map(mapSeriesToManga), filters);
+  const seen = new Set<string>();
+  const unique = filtered.filter(m => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+  return { items: unique, totalBeforeFilter };
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await withRetry(async () => {
     const r = await fetch(url, { headers: HEADERS });
@@ -108,20 +144,23 @@ export class AsuraScansProvider implements Provider {
   readonly hasPopular = true;
   readonly hasLatest = true;
 
-  async search(query: string, page = 1): Promise<PaginatedResult<Manga>> {
-    const offset = (page - 1) * PAGE_SIZE;
-    const url = `${API_BASE}/series?search=${encodeURIComponent(query)}&offset=${offset}`;
-    const data = await fetchJson<AsuraApiResponse>(url);
-    const items = (data.data || []).map(mapSeriesToManga);
-    const total = data.meta?.total || items.length;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+  async search(query: string, page = 1, filters?: ProviderFilters): Promise<PaginatedResult<Manga>> {
+    const hasActiveFilters = !!(filters?.status || filters?.minChapters);
+    const fetchOffset = hasActiveFilters ? 0 : (page - 1) * PAGE_SIZE;
+    const { items: allFiltered, totalBeforeFilter } = await fetchWithFilters(
+      (offset) => `${API_BASE}/series?search=${encodeURIComponent(query)}&offset=${offset}`,
+      filters,
+    );
 
-    return {
-      data: items,
-      page,
-      totalPages,
-      hasMore: page < totalPages,
-    };
+    if (hasActiveFilters) {
+      const start = (page - 1) * PAGE_SIZE;
+      const pageItems = allFiltered.slice(start, start + PAGE_SIZE);
+      const totalPages = Math.max(1, Math.ceil(allFiltered.length / PAGE_SIZE));
+      return { data: pageItems, page, totalPages, hasMore: page < totalPages };
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalBeforeFilter / PAGE_SIZE));
+    return { data: allFiltered, page, totalPages, hasMore: page < totalPages };
   }
 
   async getMangaDetails(mangaId: string): Promise<Manga> {
@@ -167,25 +206,39 @@ export class AsuraScansProvider implements Provider {
     }));
   }
 
-  async getPopular(page = 1): Promise<PaginatedResult<Manga>> {
-    const offset = (page - 1) * PAGE_SIZE;
-    const url = `${API_BASE}/series?sort=POPULAR&offset=${offset}`;
-    const data = await fetchJson<AsuraApiResponse>(url);
-    const items = (data.data || []).map(mapSeriesToManga);
-    const total = data.meta?.total || items.length;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+  async getPopular(page = 1, filters?: ProviderFilters): Promise<PaginatedResult<Manga>> {
+    const hasActiveFilters = !!(filters?.status || filters?.minChapters);
+    const { items: allFiltered, totalBeforeFilter } = await fetchWithFilters(
+      (offset) => `${API_BASE}/series?sort=POPULAR&offset=${offset}`,
+      filters,
+    );
 
-    return { data: items, page, totalPages, hasMore: page < totalPages };
+    if (hasActiveFilters) {
+      const start = (page - 1) * PAGE_SIZE;
+      const pageItems = allFiltered.slice(start, start + PAGE_SIZE);
+      const totalPages = Math.max(1, Math.ceil(allFiltered.length / PAGE_SIZE));
+      return { data: pageItems, page, totalPages, hasMore: page < totalPages };
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalBeforeFilter / PAGE_SIZE));
+    return { data: allFiltered, page, totalPages, hasMore: page < totalPages };
   }
 
-  async getLatest(page = 1): Promise<PaginatedResult<Manga>> {
-    const offset = (page - 1) * PAGE_SIZE;
-    const url = `${API_BASE}/series?sort=LATEST&offset=${offset}`;
-    const data = await fetchJson<AsuraApiResponse>(url);
-    const items = (data.data || []).map(mapSeriesToManga);
-    const total = data.meta?.total || items.length;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+  async getLatest(page = 1, filters?: ProviderFilters): Promise<PaginatedResult<Manga>> {
+    const hasActiveFilters = !!(filters?.status || filters?.minChapters);
+    const { items: allFiltered, totalBeforeFilter } = await fetchWithFilters(
+      (offset) => `${API_BASE}/series?sort=LATEST&offset=${offset}`,
+      filters,
+    );
 
-    return { data: items, page, totalPages, hasMore: page < totalPages };
+    if (hasActiveFilters) {
+      const start = (page - 1) * PAGE_SIZE;
+      const pageItems = allFiltered.slice(start, start + PAGE_SIZE);
+      const totalPages = Math.max(1, Math.ceil(allFiltered.length / PAGE_SIZE));
+      return { data: pageItems, page, totalPages, hasMore: page < totalPages };
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalBeforeFilter / PAGE_SIZE));
+    return { data: allFiltered, page, totalPages, hasMore: page < totalPages };
   }
 }
