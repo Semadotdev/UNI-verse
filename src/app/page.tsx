@@ -249,22 +249,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-bg-raised/50">
-        <div className="container mx-auto px-4 md:px-8 py-8">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className="flex items-center gap-2">
-              <span className="text-base font-bold tracking-tight">
-                <span className="text-white">UNI</span>
-                <span className="text-primary-light">-</span>
-                <span className="text-white">verse</span>
-              </span>
-            </div>
-            <p className="text-xs text-muted">Grace Lights the Way to Every Story.</p>
-            <p className="text-xs text-muted/60">© 2026 UNI-verse</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -21,6 +21,7 @@ export interface Settings {
   doubleTapZoom: boolean;
   splitWidePages: boolean;
   pagePreloadCount: number;
+  autoScrollSpeed: number;
 }
 
 interface SettingsContextType {
@@ -47,6 +48,7 @@ const defaultSettings: Settings = {
   doubleTapZoom: true,
   splitWidePages: true,
   pagePreloadCount: 2,
+  autoScrollSpeed: 3,
 };
 
 const STORAGE_KEY = "uni-verse-settings";

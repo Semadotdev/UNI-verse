@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-verse-v1";
+const CACHE_NAME = "uni-verse-v2";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -30,6 +30,8 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   if (request.url.includes("/api/")) return;
+
+  if (request.mode === "navigate") return;
 
   event.respondWith(
     caches.match(request).then((cached) => {

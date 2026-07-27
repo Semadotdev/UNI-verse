@@ -180,6 +180,22 @@ export function ReaderSettingsDrawer({
         </SettingRow>
       </Section>
 
+      {!isPaged && (
+        <Section title="Auto Scroll">
+          <SettingRow label={`Speed: ${settings.autoScrollSpeed}`}>
+            <Slider
+              min={1}
+              max={10}
+              step={1}
+              value={settings.autoScrollSpeed}
+              onChange={(v) => set({ autoScrollSpeed: v })}
+              label="Auto Scroll Speed"
+              className="w-24"
+            />
+          </SettingRow>
+        </Section>
+      )}
+
       {isPaged && (
         <Section title="Paged Reader">
           <SettingRow label="Tap Zone Layout">

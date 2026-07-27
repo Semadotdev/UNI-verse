@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Settings, ChevronLeft, ChevronRight } from "lucide-react";
+import { Settings, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
 import { useReader } from "@/hooks/use-manga";
 import { useSettings } from "@/contexts/SettingsContext";
 import { useMangaSettings, mergeSettings } from "@/hooks/use-manga-settings";
@@ -31,10 +31,16 @@ export default function ReaderPage() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [mangaDetails, setMangaDetails] = useState<Pick<Manga, "title" | "cover"> | null>(null);
   const [showSwipeIndicator, setShowSwipeIndicator] = useState(false);
+  const [autoScrollActive, setAutoScrollActive] = useState(false);
+  const [showChapterPrompt, setShowChapterPrompt] = useState(false);
   const toolbarTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swipeIndicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+  const autoScrollRafId = useRef<number>(0);
+  const autoScrollActiveRef = useRef(false);
+  const pausedByInteraction = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const isLongStrip = settings.readingMode === "long-strip";
 
@@ -74,6 +80,11 @@ export default function ReaderPage() {
       coverUrl: mangaDetails.cover,
       progress: 0,
       completed: false,
+    }).catch(() => {});
+    ApiClient.post("/api/history/read", {
+      providerId,
+      mangaId,
+      chapterId,
     }).catch(() => {});
   }, [providerId, mangaId, chapterId, currentChapter, mangaDetails]);
 
@@ -120,6 +131,86 @@ export default function ReaderPage() {
     return () => { if (swipeIndicatorTimeout.current) clearTimeout(swipeIndicatorTimeout.current); };
   }, [isLongStrip]);
 
+  // Reset auto-scroll when chapter changes
+  useEffect(() => {
+    setAutoScrollActive(false);
+    autoScrollActiveRef.current = false;
+    setShowChapterPrompt(false);
+    pausedByInteraction.current = false;
+    if (autoScrollRafId.current) cancelAnimationFrame(autoScrollRafId.current);
+  }, [chapterId]);
+
+  // Auto-scroll engine
+  useEffect(() => {
+    if (!autoScrollActive || !isLongStrip) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let lastTime = 0;
+
+    const tick = (time: number) => {
+      if (!autoScrollActiveRef.current) return;
+      if (pausedByInteraction.current) return;
+
+      if (lastTime === 0) lastTime = time;
+      const delta = time - lastTime;
+      lastTime = time;
+
+      const speed = settings.autoScrollSpeed * 0.5;
+      container.scrollBy(0, speed * (delta / 16.67));
+
+      // Check if we've reached the bottom
+      const atBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 10;
+      const atLastPage = currentPage >= pages.length - 1;
+
+      if (atBottom && atLastPage) {
+        autoScrollActiveRef.current = false;
+        setAutoScrollActive(false);
+        if (nextChapter) {
+          setShowChapterPrompt(true);
+        }
+        return;
+      }
+
+      autoScrollRafId.current = requestAnimationFrame(tick);
+    };
+
+    pausedByInteraction.current = false;
+    autoScrollRafId.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (autoScrollRafId.current) cancelAnimationFrame(autoScrollRafId.current);
+    };
+  }, [autoScrollActive, isLongStrip, settings.autoScrollSpeed, currentPage, pages.length, nextChapter]);
+
+  // Pause auto-scroll on user interaction
+  useEffect(() => {
+    if (!autoScrollActive) return;
+
+    const pause = (e: Event) => {
+      if (!autoScrollActiveRef.current) return;
+      if (e instanceof TouchEvent) {
+        const target = e.target as HTMLElement;
+        if (target.closest("[data-auto-scroll-btn]")) return;
+      }
+      pausedByInteraction.current = true;
+      setAutoScrollActive(false);
+      autoScrollActiveRef.current = false;
+      if (autoScrollRafId.current) cancelAnimationFrame(autoScrollRafId.current);
+    };
+
+    window.addEventListener("touchstart", pause, { once: true, passive: true });
+    window.addEventListener("mousedown", pause, { once: true });
+    window.addEventListener("keydown", pause, { once: true });
+
+    return () => {
+      window.removeEventListener("touchstart", pause);
+      window.removeEventListener("mousedown", pause);
+      window.removeEventListener("keydown", pause);
+    };
+  }, [autoScrollActive]);
+
   const goToPage = useCallback(
     (pageIndex: number) => {
       if (pageIndex >= 0 && pageIndex < pages.length) {
@@ -127,10 +218,9 @@ export default function ReaderPage() {
         if (isLongStrip) {
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
-        showToolbars();
       }
     },
-    [pages.length, showToolbars, isLongStrip]
+    [pages.length, isLongStrip]
   );
 
   const goToChapter = useCallback(
@@ -269,6 +359,7 @@ export default function ReaderPage() {
 
       {/* Reader content — swipe handler on paged modes */}
       <div
+        ref={scrollContainerRef}
         className={`flex-1 overflow-hidden ${isLongStrip ? "overflow-y-auto pt-10 pb-4" : ""}`}
         onTouchStart={!isLongStrip ? handleTouchStart : undefined}
         onTouchEnd={!isLongStrip ? handleTouchEnd : undefined}
@@ -363,12 +454,77 @@ export default function ReaderPage() {
           e.stopPropagation();
           setDrawerOpen(true);
         }}
-        className={`fixed bottom-6 right-6 z-50 h-11 w-11 flex items-center justify-center rounded-full bg-bg-raised/90 border border-border shadow-lg hover:bg-bg-overlay hover:border-primary transition-all duration-300 ${
-          toolbarsVisible ? "opacity-0 pointer-events-none" : "opacity-100"
+        className={`hidden md:flex fixed bottom-6 right-6 z-50 h-11 w-11 items-center justify-center rounded-full bg-bg-raised/90 border border-border shadow-lg hover:bg-bg-overlay hover:border-primary transition-all duration-300 ${
+          toolbarsVisible || autoScrollActive ? "opacity-0 pointer-events-none" : "opacity-100"
         }`}
       >
         <Settings className="h-5 w-5 text-muted hover:text-zinc-200" />
       </button>
+
+      {/* Floating auto-scroll FAB — long-strip only */}
+      {isLongStrip && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (autoScrollActiveRef.current) {
+              autoScrollActiveRef.current = false;
+              setAutoScrollActive(false);
+              if (autoScrollRafId.current) cancelAnimationFrame(autoScrollRafId.current);
+            } else {
+              setShowChapterPrompt(false);
+              autoScrollActiveRef.current = true;
+              setAutoScrollActive(true);
+            }
+          }}
+          className={`fixed bottom-[4.5rem] right-6 md:bottom-6 md:right-20 z-50 h-11 w-11 flex items-center justify-center rounded-full bg-bg-raised/90 border shadow-lg backdrop-blur-md transition-all duration-300 ${
+            autoScrollActive
+              ? "border-primary text-primary hover:bg-bg-overlay"
+              : "border-border text-muted hover:border-primary hover:text-zinc-200 hover:bg-bg-overlay"
+          } ${toolbarsVisible ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+          title={autoScrollActive ? "Stop auto-scroll" : "Start auto-scroll"}
+          data-auto-scroll-btn
+        >
+          {autoScrollActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+        </button>
+      )}
+
+      {/* Chapter prompt modal */}
+      {showChapterPrompt && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="bg-bg-raised border border-border rounded-2xl p-6 mx-4 max-w-sm w-full shadow-2xl">
+            <p className="text-zinc-200 text-sm font-medium mb-1">End of chapter</p>
+            <p className="text-muted text-xs mb-5">
+              You&apos;ve reached the last page. Continue to the next chapter?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowChapterPrompt(false);
+                }}
+                className="flex-1 py-2.5 text-xs font-medium text-muted border border-border rounded-lg hover:border-border-hover hover:text-zinc-200 transition-colors"
+              >
+                Stay
+              </button>
+              {nextChapter && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowChapterPrompt(false);
+                    goToChapter(nextChapter);
+                  }}
+                  className="flex-1 py-2.5 text-xs font-medium text-white bg-primary hover:bg-primary-hover rounded-lg transition-colors"
+                >
+                  Next Chapter
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating prev/next arrows — desktop only for paged, all sizes for long-strip */}
       {isLongStrip ? (
@@ -380,7 +536,7 @@ export default function ReaderPage() {
                 goToChapter(prevChapter);
               }}
               className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 flex items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
-                toolbarsVisible ? "opacity-0 pointer-events-none" : "opacity-100"
+                (toolbarsVisible || autoScrollActive) ? "opacity-0 pointer-events-none" : "opacity-100"
               }`}
               title="Previous chapter"
             >
@@ -394,7 +550,7 @@ export default function ReaderPage() {
                 goToChapter(nextChapter);
               }}
               className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 flex items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
-                toolbarsVisible ? "opacity-0 pointer-events-none" : "opacity-100"
+                (toolbarsVisible || autoScrollActive) ? "opacity-0 pointer-events-none" : "opacity-100"
               }`}
               title="Next chapter"
             >

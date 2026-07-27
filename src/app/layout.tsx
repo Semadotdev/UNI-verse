@@ -1,25 +1,27 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 import { ToastContainer } from "@/components/ui/Toast";
 import { Providers } from "@/components/Providers";
 import { ThemeApplier } from "@/components/ThemeApplier";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#581c87",
+};
+
 export const metadata: Metadata = {
   title: "UNI-verse",
   description: "Grace Lights the Way to Every Story.",
   manifest: "/manifest.json",
-  themeColor: "#581c87",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -76,6 +78,7 @@ export default function RootLayout({
           <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
             {children}
           </main>
+          <Footer />
           <ToastContainer />
         </Providers>
       </body>

@@ -48,4 +48,20 @@ export class HistoryService {
       where: { userId },
     });
   }
+
+  async getReadChapters(userId: string, providerId: string, mangaId: string) {
+    const rows = await prisma.readChapter.findMany({
+      where: { userId, providerId, mangaId },
+      select: { chapterId: true },
+    });
+    return new Set(rows.map((r) => r.chapterId));
+  }
+
+  async markChapterRead(userId: string, providerId: string, mangaId: string, chapterId: string) {
+    return prisma.readChapter.upsert({
+      where: { userId_providerId_mangaId_chapterId: { userId, providerId, mangaId, chapterId } },
+      create: { userId, providerId, mangaId, chapterId },
+      update: { readAt: new Date() },
+    });
+  }
 }

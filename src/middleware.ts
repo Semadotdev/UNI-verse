@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const publicRoutes = ['/login', '/register', '/api/auth'];
+const alwaysPublicRoutes = ['/legal'];
 
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,15 +47,18 @@ export async function middleware(request: NextRequest) {
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)
   );
+  const isAlwaysPublic = alwaysPublicRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
   const isApiRoute = pathname.startsWith('/api/');
 
-  if (!user && !isPublicRoute && !isApiRoute) {
+  if (!user && !isPublicRoute && !isAlwaysPublic && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublicRoute && !isApiRoute) {
+  if (user && isPublicRoute && !isAlwaysPublic && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);

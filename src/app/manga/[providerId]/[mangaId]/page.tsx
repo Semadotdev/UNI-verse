@@ -18,11 +18,18 @@ export default function MangaDetailPage() {
   const [sortBy, setSortBy] = useState<"chapter" | "date">("chapter");
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showAddFolderPicker, setShowAddFolderPicker] = useState(false);
+  const [readChapters, setReadChapters] = useState<Set<string>>(new Set());
   const folderPickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchManga(providerId, mangaId);
   }, [providerId, mangaId, fetchManga]);
+
+  useEffect(() => {
+    ApiClient.get<{ readChapters: string[] }>(`/api/history/read?providerId=${providerId}&mangaId=${mangaId}`)
+      .then((data) => setReadChapters(new Set(data.readChapters)))
+      .catch(() => {});
+  }, [providerId, mangaId]);
 
   useEffect(() => {
     if (!showFolderPicker && !showAddFolderPicker) return;
@@ -389,7 +396,11 @@ export default function MangaDetailPage() {
                           className="flex items-center justify-between px-4 py-3 hover:bg-bg-overlay/70 transition-all duration-150 group border-b border-border/50 last:border-0"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium truncate group-hover:text-primary-light transition-colors">
+                            <p className={`text-sm font-medium truncate transition-colors ${
+                              readChapters.has(chapter.id)
+                                ? "text-primary-light"
+                                : "group-hover:text-primary-light"
+                            }`}>
                               {chapter.number !== null
                                 ? `Chapter ${chapter.number}`
                                 : chapter.title}

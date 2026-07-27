@@ -213,6 +213,44 @@ body {
 .prose-dark p {
   margin-bottom: 1em;
 }
+.prose-dark h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fafafa;
+  margin-bottom: 0.75rem;
+  margin-top: 2rem;
+}
+.prose-dark h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e4e4e7;
+  margin-bottom: 0.5rem;
+  margin-top: 1.5rem;
+}
+.prose-dark ul,
+.prose-dark ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1em;
+}
+.prose-dark li {
+  margin-bottom: 0.25rem;
+}
+.prose-dark a {
+  color: #A78BFA;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-dark a:hover {
+  color: #7C3AED;
+}
+.prose-dark strong {
+  color: #e4e4e7;
+}
+.prose-dark hr {
+  border: none;
+  border-top: 1px solid #27272a;
+  margin: 2rem 0;
+}
 
 /* Skeleton shimmer */
 .skeleton-shimmer {

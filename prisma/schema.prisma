@@ -19,6 +19,7 @@ model User {
   library       Library[]
   folders       Folder[]
   history       ReadingHistory[]
+  readChapters  ReadChapter[]
   settings      UserSettings?
   mangaSettings MangaSettings[]
 }
@@ -93,6 +94,20 @@ model ReadingHistory {
 
   @@unique([userId, providerId, mangaId])
   @@index([userId, readAt])
+}
+
+model ReadChapter {
+  id         String   @id @default(cuid())
+  userId     String
+  providerId String
+  mangaId    String
+  chapterId  String
+  readAt     DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, providerId, mangaId, chapterId])
+  @@index([userId, providerId, mangaId])
 }
 
 model UserSettings {
