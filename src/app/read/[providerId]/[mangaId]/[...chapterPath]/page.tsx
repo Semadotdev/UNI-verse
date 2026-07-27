@@ -246,7 +246,6 @@ export default function ReaderPage() {
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (isLongStrip) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     const absDx = Math.abs(dx);
@@ -255,22 +254,34 @@ export default function ReaderPage() {
     // Only trigger if horizontal swipe > 50px and more horizontal than vertical
     if (absDx < 50 || absDx < absDy * 1.2) return;
 
-    if (dx < 0) {
-      // Swipe left → next page
-      if (currentPage < pages.length - 1) {
-        goToPage(currentPage + 1);
-      } else if (nextChapter) {
-        goToChapter(nextChapter);
+    const isRTL = settings.readingMode === "paged-rtl";
+    const swipeLeft = dx < 0;
+    const goNext = isRTL ? !swipeLeft : swipeLeft;
+
+    if (isLongStrip) {
+      // Long-strip: swipe navigates chapters
+      if (goNext) {
+        if (nextChapter) goToChapter(nextChapter);
+      } else {
+        if (prevChapter) goToChapter(prevChapter);
       }
     } else {
-      // Swipe right → previous page
-      if (currentPage > 0) {
-        goToPage(currentPage - 1);
-      } else if (prevChapter) {
-        goToChapter(prevChapter);
+      // Paged: swipe navigates pages
+      if (goNext) {
+        if (currentPage < pages.length - 1) {
+          goToPage(currentPage + 1);
+        } else if (nextChapter) {
+          goToChapter(nextChapter);
+        }
+      } else {
+        if (currentPage > 0) {
+          goToPage(currentPage - 1);
+        } else if (prevChapter) {
+          goToChapter(prevChapter);
+        }
       }
     }
-  }, [isLongStrip, currentPage, pages.length, nextChapter, prevChapter, goToPage, goToChapter]);
+  }, [isLongStrip, settings.readingMode, currentPage, pages.length, nextChapter, prevChapter, goToPage, goToChapter]);
 
   if (loading) {
     return (
@@ -357,12 +368,12 @@ export default function ReaderPage() {
         </button>
       </div>
 
-      {/* Reader content — swipe handler on paged modes */}
+      {/* Reader content — swipe handler */}
       <div
         ref={scrollContainerRef}
         className={`flex-1 overflow-hidden ${isLongStrip ? "overflow-y-auto pt-10 pb-4" : ""}`}
-        onTouchStart={!isLongStrip ? handleTouchStart : undefined}
-        onTouchEnd={!isLongStrip ? handleTouchEnd : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {isLongStrip ? (
           <LongStripReader pages={pages} settings={settings} onPageChange={goToPage} />
@@ -535,7 +546,7 @@ export default function ReaderPage() {
                 e.stopPropagation();
                 goToChapter(prevChapter);
               }}
-              className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 flex items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
+              className={`hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
                 (toolbarsVisible || autoScrollActive) ? "opacity-0 pointer-events-none" : "opacity-100"
               }`}
               title="Previous chapter"
@@ -549,7 +560,7 @@ export default function ReaderPage() {
                 e.stopPropagation();
                 goToChapter(nextChapter);
               }}
-              className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 flex items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
+              className={`hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
                 (toolbarsVisible || autoScrollActive) ? "opacity-0 pointer-events-none" : "opacity-100"
               }`}
               title="Next chapter"
