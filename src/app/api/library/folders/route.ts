@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LibraryService } from '@/application/services/library.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
-import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+import { getAuthUserId } from '@/lib/auth';
 
 const libraryService = new LibraryService();
 
 export async function GET() {
   try {
-    await ensureDefaultUser();
-    const folders = await libraryService.getFolders(DEFAULT_USER_ID);
+    const userId = await getAuthUserId();
+    const folders = await libraryService.getFolders(userId);
     return NextResponse.json(successResponse(folders));
   } catch (error) {
     return NextResponse.json(
@@ -20,7 +20,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const body = await request.json();
     const { name } = body;
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const folder = await libraryService.createFolder(DEFAULT_USER_ID, name);
+    const folder = await libraryService.createFolder(userId, name);
     return NextResponse.json(successResponse(folder));
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unique constraint')) {

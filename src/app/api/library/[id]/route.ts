@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LibraryService } from '@/application/services/library.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
-import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+import { getAuthUserId } from '@/lib/auth';
 
 const libraryService = new LibraryService();
 
@@ -10,9 +10,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const { id } = await params;
-    await libraryService.removeFromLibrary(DEFAULT_USER_ID, id);
+    await libraryService.removeFromLibrary(userId, id);
     return NextResponse.json(successResponse({ deleted: true }));
   } catch (error) {
     return NextResponse.json(
@@ -27,7 +27,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const { id } = await params;
     const body = await request.json();
     const { chapterId, chapterNum, title, read, progress } = body;
@@ -39,7 +39,7 @@ export async function PUT(
       );
     }
 
-    const bookmark = await libraryService.updateBookmark(DEFAULT_USER_ID, id, chapterId, {
+    const bookmark = await libraryService.updateBookmark(userId, id, chapterId, {
       chapterNum,
       title,
       read,

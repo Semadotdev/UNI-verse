@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HistoryService } from '@/application/services/history.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
-import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+import { getAuthUserId } from '@/lib/auth';
 
 const historyService = new HistoryService();
 
 export async function GET(request: NextRequest) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const { searchParams } = new URL(request.url);
     const providerId = searchParams.get('providerId');
     const mangaId = searchParams.get('mangaId');
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const readChapters = await historyService.getReadChapters(DEFAULT_USER_ID, providerId, mangaId);
+    const readChapters = await historyService.getReadChapters(userId, providerId, mangaId);
     return NextResponse.json(successResponse({ readChapters: Array.from(readChapters) }));
   } catch (error) {
     return NextResponse.json(
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const body = await request.json();
     const { providerId, mangaId, chapterId } = body;
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await historyService.markChapterRead(DEFAULT_USER_ID, providerId, mangaId, chapterId);
+    await historyService.markChapterRead(userId, providerId, mangaId, chapterId);
     return NextResponse.json(successResponse({ marked: true }));
   } catch (error) {
     return NextResponse.json(

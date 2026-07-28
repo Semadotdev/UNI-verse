@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LibraryService } from '@/application/services/library.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
-import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+import { getAuthUserId } from '@/lib/auth';
 
 const libraryService = new LibraryService();
 
 export async function GET(request: NextRequest) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const { searchParams } = new URL(request.url);
     const folderId = searchParams.get('folderId');
     const library = await libraryService.getLibrary(
-      DEFAULT_USER_ID,
+      userId,
       folderId || undefined
     );
     return NextResponse.json(successResponse(library));
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const body = await request.json();
     const { providerId, mangaId, title, coverUrl, status, categories, folderId } = body;
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const item = await libraryService.addToLibrary(DEFAULT_USER_ID, providerId, mangaId, {
+    const item = await libraryService.addToLibrary(userId, providerId, mangaId, {
       title,
       coverUrl: coverUrl || '',
       status,

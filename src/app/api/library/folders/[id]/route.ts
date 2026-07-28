@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LibraryService } from '@/application/services/library.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
-import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+import { getAuthUserId } from '@/lib/auth';
 
 const libraryService = new LibraryService();
 
@@ -10,7 +10,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const { id } = await params;
     const body = await request.json();
     const { name } = body;
@@ -22,7 +22,7 @@ export async function PUT(
       );
     }
 
-    const folder = await libraryService.renameFolder(DEFAULT_USER_ID, id, name);
+    const folder = await libraryService.renameFolder(userId, id, name);
     return NextResponse.json(successResponse(folder));
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unique constraint')) {
@@ -43,9 +43,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const { id } = await params;
-    await libraryService.deleteFolder(DEFAULT_USER_ID, id);
+    await libraryService.deleteFolder(userId, id);
     return NextResponse.json(successResponse({ deleted: true }));
   } catch (error) {
     return NextResponse.json(

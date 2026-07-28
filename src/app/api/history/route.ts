@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HistoryService } from '@/application/services/history.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
-import { DEFAULT_USER_ID, ensureDefaultUser } from '@/lib/default-user';
+import { getAuthUserId } from '@/lib/auth';
 
 const historyService = new HistoryService();
 
 export async function GET() {
   try {
-    await ensureDefaultUser();
-    const history = await historyService.getHistory(DEFAULT_USER_ID);
+    const userId = await getAuthUserId();
+    const history = await historyService.getHistory(userId);
     const mapped = history.map((h) => ({
       id: h.id,
       mangaId: h.mangaId,
@@ -30,7 +30,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await ensureDefaultUser();
+    const userId = await getAuthUserId();
     const body = await request.json();
     const { providerId, mangaId, chapterId, chapterNum, title, coverUrl, progress, completed } = body;
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await historyService.updateProgress(DEFAULT_USER_ID, providerId, mangaId, {
+    await historyService.updateProgress(userId, providerId, mangaId, {
       chapterId,
       chapterNum,
       title,
