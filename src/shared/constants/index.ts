@@ -6,7 +6,6 @@ export const BUILTIN_PROVIDER_IDS = [
   'asurascans',
   'comick',
   'mangafire',
-  'mangahub',
   'manhwa18',
 ] as const;
 
