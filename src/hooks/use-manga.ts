@@ -28,7 +28,9 @@ export function useSearch() {
   const handlePagination = (meta: { totalPages?: number; hasMore?: boolean } | undefined, data: Manga[], p: number) => {
     const more = meta?.hasMore ?? data.length >= 20;
     setHasMore(more);
-    if (meta?.totalPages != null && meta.totalPages > 1) {
+    if (meta?.totalPages === 0) {
+      setTotalPages(0);
+    } else if (meta?.totalPages != null && meta.totalPages > 1) {
       setTotalPages(meta.totalPages);
     } else if (more) {
       setTotalPages(prev => Math.max(prev, p + 1));

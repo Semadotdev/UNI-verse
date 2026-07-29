@@ -33,6 +33,27 @@ function Pagination({
 
   if (totalPages <= 1 && !hasMore) return null;
 
+  if (totalPages === 0) {
+    return (
+      <div className="flex items-center justify-center gap-1.5 mt-8">
+        <button
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          ← Prev
+        </button>
+        <button
+          onClick={() => onPageChange(page + 1)}
+          disabled={!hasMore}
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        >
+          Next →
+        </button>
+      </div>
+    );
+  }
+
   const getPages = (): (number | "...")[] => {
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);

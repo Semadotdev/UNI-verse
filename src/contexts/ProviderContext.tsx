@@ -1,16 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 interface ProviderContextType {
   selectedProvider: string;
   setSelectedProvider: (id: string) => void;
-}
-
-function getInitialProvider(): string {
-  if (typeof window === "undefined") return "asurascans";
-  const saved = localStorage.getItem("uni-verse-selected-provider");
-  return saved || "asurascans";
 }
 
 const ProviderContext = createContext<ProviderContextType>({
@@ -19,7 +13,12 @@ const ProviderContext = createContext<ProviderContextType>({
 });
 
 export function ProviderProvider({ children }: { children: ReactNode }) {
-  const [selectedProvider, setSelectedProviderState] = useState(getInitialProvider);
+  const [selectedProvider, setSelectedProviderState] = useState("asurascans");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("uni-verse-selected-provider");
+    if (saved) setSelectedProviderState(saved);
+  }, []);
 
   const setSelectedProvider = (id: string) => {
     setSelectedProviderState(id);

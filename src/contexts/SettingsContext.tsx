@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 
 export interface Settings {
   theme: string;
@@ -53,18 +53,6 @@ const defaultSettings: Settings = {
 
 const STORAGE_KEY = "uni-verse-settings";
 
-function loadSettings(): Settings {
-  if (typeof window === "undefined") return defaultSettings;
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return { ...defaultSettings, ...parsed };
-    }
-  } catch {}
-  return defaultSettings;
-}
-
 function saveSettings(settings: Settings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -74,8 +62,19 @@ function saveSettings(settings: Settings) {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Settings>(() => loadSettings());
-  const [loading] = useState(false);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSettings({ ...defaultSettings, ...parsed });
+      }
+    } catch {}
+    setLoading(false);
+  }, []);
 
   const updateSettings = useCallback((updates: Partial<Settings>) => {
     setSettings((prev) => {
