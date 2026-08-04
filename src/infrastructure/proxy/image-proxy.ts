@@ -7,6 +7,7 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 const REFERER_MAP: Record<string, string> = {
   'comix.to': 'https://comix.to/',
+  'webtoon-phinf.pstatic.net': 'https://www.webtoons.com/',
 };
 
 function getRefererForUrl(url: string): string | undefined {

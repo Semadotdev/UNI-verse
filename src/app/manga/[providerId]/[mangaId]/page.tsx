@@ -5,8 +5,10 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useManga } from "@/hooks/use-manga";
 import { useLibrary } from "@/contexts/LibraryContext";
+import { useToast } from "@/contexts/ToastContext";
 import { ApiClient } from "@/lib/api-client";
 import { FallbackCover } from "@/components/manga/FallbackCover";
+import { Spinner } from "@/components/ui/Spinner";
 import type { Manga } from "@/domain/entities/manga";
 
 export default function MangaDetailPage() {
@@ -15,9 +17,13 @@ export default function MangaDetailPage() {
   const mangaId = params.mangaId as string;
   const { manga, chapters, loading, error, fetchManga } = useManga();
   const { isInLibrary, addToLibrary, removeFromLibrary, library, folders, moveToFolder } = useLibrary();
+  const { addToast } = useToast();
   const [sortBy, setSortBy] = useState<"chapter" | "date">("chapter");
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showAddFolderPicker, setShowAddFolderPicker] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    { type: "add" | "move"; folderId: string | null } | null
+  >(null);
   const [readChapters, setReadChapters] = useState<Set<string>>(new Set());
   const folderPickerRef = useRef<HTMLDivElement>(null);
 
@@ -48,20 +54,40 @@ export default function MangaDetailPage() {
   );
   const inLibrary = isInLibrary(providerId, mangaId);
 
+  const folderName = (folderId: string | null) =>
+    folderId ? folders.find((f) => f.id === folderId)?.name ?? "Unknown" : "Uncategorized";
+
   const handleLibraryToggle = async (folderId?: string | null) => {
-    if (inLibrary && libraryItem) {
-      await removeFromLibrary(libraryItem.id);
-    } else if (manga) {
-      await addToLibrary(providerId, mangaId, manga.title, manga.cover, folderId ?? undefined);
+    setPendingAction({ type: "add", folderId: folderId ?? null });
+    try {
+      if (inLibrary && libraryItem) {
+        await removeFromLibrary(libraryItem.id);
+        addToast("Removed from Library", "success");
+      } else if (manga) {
+        await addToLibrary(providerId, mangaId, manga.title, manga.cover, folderId ?? undefined);
+        addToast(folderId ? `Added to "${folderName(folderId)}"` : "Added to Library", "success");
+      }
+      setShowAddFolderPicker(false);
+    } catch {
+      addToast("Failed to update library", "error");
+    } finally {
+      setPendingAction(null);
     }
-    setShowAddFolderPicker(false);
   };
 
   const handleMoveToFolder = async (folderId: string | null) => {
-    if (libraryItem) {
-      await moveToFolder(libraryItem.id, folderId);
+    setPendingAction({ type: "move", folderId });
+    try {
+      if (libraryItem) {
+        await moveToFolder(libraryItem.id, folderId);
+        addToast(folderId ? `Moved to "${folderName(folderId)}"` : "Moved to Uncategorized", "success");
+      }
+      setShowFolderPicker(false);
+    } catch {
+      addToast("Failed to move to folder", "error");
+    } finally {
+      setPendingAction(null);
     }
-    setShowFolderPicker(false);
   };
 
   const currentFolderName = libraryItem?.folderId
@@ -157,13 +183,23 @@ export default function MangaDetailPage() {
             </div>
             <button
               onClick={() => inLibrary ? setShowFolderPicker(!showFolderPicker) : setShowAddFolderPicker(!showAddFolderPicker)}
-              className={`w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+              disabled={pendingAction !== null}
+              className={`w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
                 inLibrary
                   ? "bg-bg-overlay text-zinc-300 hover:bg-border border border-border hover:border-border-hover"
                   : "bg-primary hover:bg-primary-hover text-white shadow-glow hover:shadow-glow-lg"
               }`}
             >
-              {inLibrary ? "✓ In Library" : "+ Add to Library"}
+              {pendingAction ? (
+                <>
+                  <Spinner size="sm" />
+                  {pendingAction.type === "add" ? "Adding…" : "Moving…"}
+                </>
+              ) : inLibrary ? (
+                "✓ In Library"
+              ) : (
+                "+ Add to Library"
+              )}
             </button>
 
             {/* Folder picker for existing library item */}
@@ -174,13 +210,18 @@ export default function MangaDetailPage() {
                 </div>
                 <button
                   onClick={() => handleMoveToFolder(null)}
-                  className={`w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 flex items-center gap-2 ${
+                  disabled={pendingAction !== null}
+                  className={`w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
                     !libraryItem?.folderId ? "text-primary-light" : "text-zinc-300"
                   }`}
                 >
-                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
+                  {pendingAction?.type === "move" && pendingAction.folderId === null ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  )}
                   Uncategorized
                   {!libraryItem?.folderId && <span className="ml-auto text-xs">✓</span>}
                 </button>
@@ -188,13 +229,18 @@ export default function MangaDetailPage() {
                   <button
                     key={folder.id}
                     onClick={() => handleMoveToFolder(folder.id)}
-                    className={`w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 flex items-center gap-2 ${
+                    disabled={pendingAction !== null}
+                    className={`w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
                       libraryItem?.folderId === folder.id ? "text-primary-light" : "text-zinc-300"
                     }`}
                   >
-                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
+                    {pendingAction?.type === "move" && pendingAction.folderId === folder.id ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                    )}
                     {folder.name}
                     {libraryItem?.folderId === folder.id && <span className="ml-auto text-xs">✓</span>}
                   </button>
@@ -210,22 +256,32 @@ export default function MangaDetailPage() {
                 </div>
                 <button
                   onClick={() => handleLibraryToggle(null)}
-                  className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-zinc-300 flex items-center gap-2"
+                  disabled={pendingAction !== null}
+                  className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-zinc-300 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
+                  {pendingAction?.type === "add" && pendingAction.folderId === null ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                  )}
                   Uncategorized
                 </button>
                 {folders.map((folder) => (
                   <button
                     key={folder.id}
                     onClick={() => handleLibraryToggle(folder.id)}
-                    className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-zinc-300 flex items-center gap-2"
+                    disabled={pendingAction !== null}
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-zinc-300 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                    </svg>
+                    {pendingAction?.type === "add" && pendingAction.folderId === folder.id ? (
+                      <Spinner size="sm" />
+                    ) : (
+                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                      </svg>
+                    )}
                     {folder.name}
                   </button>
                 ))}

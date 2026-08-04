@@ -6,6 +6,7 @@ import { ApiClient } from "@/lib/api-client";
 import type { Manga } from "@/domain/entities/manga";
 import { MangaCard } from "@/components/manga/MangaCard";
 import { FallbackCover } from "@/components/manga/FallbackCover";
+import { WebtoonsNotice } from "@/components/ui/WebtoonsNotice";
 import { useProvider } from "@/contexts/ProviderContext";
 
 export default function HomePage() {
@@ -149,6 +150,11 @@ export default function HomePage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 md:px-8 py-10 space-y-12 flex-1">
+
+        {/* Webtoons loading notice */}
+        <div>
+          <WebtoonsNotice />
+        </div>
 
         {/* Trending — horizontal scroll */}
         {loading ? (

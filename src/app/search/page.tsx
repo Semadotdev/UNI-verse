@@ -5,6 +5,7 @@ import { useSearch } from "@/hooks/use-manga";
 import { MangaGrid } from "@/components/manga/MangaGrid";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Combobox } from "@/components/ui/Combobox";
+import { WebtoonsNotice } from "@/components/ui/WebtoonsNotice";
 import { useProvider } from "@/contexts/ProviderContext";
 
 const MANHWA18_GENRES = [
@@ -48,6 +49,25 @@ const MANHWA18_GENRES = [
   { label: "Tragedy", value: "tragedy" },
   { label: "Yaoi", value: "yaoi" },
   { label: "Yuri", value: "yuri" },
+];
+
+const WEBTOONS_GENRES = [
+  { label: "Action", value: "action" },
+  { label: "Comedy", value: "comedy" },
+  { label: "Drama", value: "drama" },
+  { label: "Fantasy", value: "fantasy" },
+  { label: "Graphic Novel", value: "graphic" },
+  { label: "Heartwarming", value: "heartwarming" },
+  { label: "Historical", value: "historical" },
+  { label: "Horror", value: "horror" },
+  { label: "Mystery", value: "mystery" },
+  { label: "Romance", value: "romance" },
+  { label: "Sci-fi", value: "sf" },
+  { label: "Slice of Life", value: "slice" },
+  { label: "Sports", value: "sports" },
+  { label: "Superhero", value: "super" },
+  { label: "Supernatural", value: "supernatural" },
+  { label: "Thriller", value: "thriller" },
 ];
 
 export default function SearchPage() {
@@ -292,7 +312,7 @@ export default function SearchPage() {
               onChange={handleBrowseModeChange}
             />
           )}
-          {(selectedProvider === "manhwa18" || selectedProvider === "asurascans") && (
+          {(selectedProvider === "manhwa18" || selectedProvider === "asurascans" || selectedProvider === "webtoons") && (
             <button
               type="button"
               onClick={() => setFiltersOpen(!filtersOpen)}
@@ -317,6 +337,11 @@ export default function SearchPage() {
               )}
             </button>
           )}
+        </div>
+
+        {/* Webtoons loading notice */}
+        <div className="mt-3">
+          <WebtoonsNotice />
         </div>
 
         {/* Collapsible filter panel (manhwa18) */}
@@ -378,6 +403,45 @@ export default function SearchPage() {
                     }`}
                   >
                     {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible filter panel (webtoons) */}
+        {selectedProvider === "webtoons" && filtersOpen && (
+          <div className="mt-4 p-4 rounded-xl border border-border bg-bg-raised animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Genres */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-muted mb-2">Genres</label>
+                <Combobox
+                  options={WEBTOONS_GENRES}
+                  selected={filters.tags}
+                  onChange={handleTagsChange}
+                  searchPlaceholder="Search genres..."
+                />
+              </div>
+            </div>
+
+            {/* Popular genres quick select */}
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-muted mb-2">Popular genres</label>
+              <div className="flex flex-wrap gap-2">
+                {WEBTOONS_GENRES.slice(0, 12).map((tag) => (
+                  <button
+                    key={tag.value}
+                    type="button"
+                    onClick={() => handleQuickTag(tag.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.tags.includes(tag.value)
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {tag.label}
                   </button>
                 ))}
               </div>

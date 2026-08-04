@@ -36,7 +36,7 @@ export class SearchService {
 
     const maxTotalPages = results
       .filter((r): r is PromiseFulfilledResult<PaginatedResult<Manga>> => r.status === 'fulfilled')
-      .reduce((max, r) => Math.max(max, r.value.totalPages || 1), 1);
+      .reduce((max, r) => Math.max(max, r.value.totalPages), 0);
 
     const hasMore = results
       .filter((r): r is PromiseFulfilledResult<PaginatedResult<Manga>> => r.status === 'fulfilled')

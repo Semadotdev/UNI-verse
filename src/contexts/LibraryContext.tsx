@@ -78,6 +78,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     const url = selectedFolderId !== null
       ? `/api/library?folderId=${selectedFolderId}`
       : "/api/library";

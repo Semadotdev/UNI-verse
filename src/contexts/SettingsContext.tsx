@@ -32,13 +32,13 @@ interface SettingsContextType {
 
 const defaultSettings: Settings = {
   theme: "dark",
-  readerMode: "paged",
+  readerMode: "webtoon",
   readingDirection: "ltr",
   backgroundColor: "#000000",
   brightness: 1.0,
   padding: 0,
   language: "en",
-  readingMode: "paged",
+  readingMode: "long-strip",
   scaleType: "contain",
   zoomStartPosition: "center",
   showPageNumber: true,
