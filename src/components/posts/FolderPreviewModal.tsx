@@ -36,7 +36,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewModalProps) {
   const { addToast } = useToast();
-  const { isInLibrary, refresh, refreshFolders } = useLibrary();
+  const { isInLibrary, refresh, refreshFolders, folders, createFolder, addToLibrary } = useLibrary();
   const [preview, setPreview] = useState<FolderPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +61,10 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
     };
   }, [postId]);
 
+  const itemKey = (item: PostFolderItem) => `${item.providerId}:${item.mangaId}`;
+
   const alreadyAdded = (item: PostFolderItem) =>
-    addedIds.has(item.mangaId) || isInLibrary(item.providerId, item.mangaId);
+    addedIds.has(itemKey(item)) || isInLibrary(item.providerId, item.mangaId);
 
   const addOne = async (item: PostFolderItem) => {
     if (adding) return;
@@ -74,7 +76,7 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
         title: item.title,
         coverUrl: item.coverUrl,
       });
-      setAddedIds((prev) => new Set(prev).add(item.mangaId));
+      setAddedIds((prev) => new Set(prev).add(itemKey(item)));
       addToast(`Added "${item.title}" to your library`, "success");
     } catch (e) {
       addToast(e instanceof Error ? e.message : "Failed to add to library", "error");
@@ -84,37 +86,51 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
   };
 
   const addAll = async () => {
-    const items = preview?.items ?? [];
-    const pending = items.filter((i) => !alreadyAdded(i));
-    if (pending.length === 0) {
-      addToast("Everything is already in your library", "success");
-      return;
-    }
+    if (!preview || addingAll) return;
     setAddingAll(true);
-    const results = await Promise.allSettled(
-      pending.map((item) =>
-        ApiClient.post("/api/library", {
-          providerId: item.providerId,
-          mangaId: item.mangaId,
-          title: item.title,
-          coverUrl: item.coverUrl,
-        })
-      )
-    );
-    const succeeded = results.filter((r) => r.status === "fulfilled").length;
-    const failed = results.length - succeeded;
-    setAddedIds((prev) => {
-      const next = new Set(prev);
-      pending.forEach((item) => next.add(item.mangaId));
-      return next;
-    });
-    await refresh();
-    await refreshFolders();
-    setAddingAll(false);
-    if (failed > 0) {
-      addToast(`Added ${succeeded} book${succeeded === 1 ? "" : "s"}; ${failed} failed`, "error");
-    } else {
-      addToast(`Added ${succeeded} book${succeeded === 1 ? "" : "s"} to your library`, "success");
+    try {
+      let folderId: string | null = null;
+      const existing = folders.find(
+        (f) => f.name.toLowerCase() === preview.name.toLowerCase()
+      );
+      if (existing) {
+        folderId = existing.id;
+      } else {
+        try {
+          const folder = await createFolder(preview.name);
+          folderId = folder.id;
+        } catch {
+          await refreshFolders();
+          const created = folders.find(
+            (f) => f.name.toLowerCase() === preview.name.toLowerCase()
+          );
+          folderId = created?.id ?? null;
+        }
+      }
+
+      let addedCount = 0;
+      for (const item of preview.items) {
+        if (alreadyAdded(item)) continue;
+        try {
+          await addToLibrary(item.providerId, item.mangaId, item.title, item.coverUrl, folderId);
+          setAddedIds((prev) => new Set(prev).add(itemKey(item)));
+          addedCount += 1;
+        } catch {
+          addToast(`Failed to add "${item.title}"`, "error");
+        }
+      }
+
+      await refresh();
+      await refreshFolders();
+      if (addedCount > 0) {
+        addToast(`Added ${addedCount} to "${preview.name}"`, "success");
+      } else {
+        addToast("Everything is already in your library", "success");
+      }
+    } catch {
+      addToast("Failed to add folder to library", "error");
+    } finally {
+      setAddingAll(false);
     }
   };
 
@@ -139,7 +155,7 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
               className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-light transition-colors disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
-              {addingAll ? "Adding..." : "Add all to library"}
+              {addingAll ? "Adding..." : "Add folder to my library"}
             </button>
           )}
         </>
