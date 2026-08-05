@@ -16,8 +16,8 @@ export function PostImageGrid({ images }: { images: { url: string }[] }) {
           src={img.url}
           alt=""
           className={cn(
-            "w-full h-auto rounded-lg object-cover bg-bg-raised",
-            count === 1 && "max-h-[420px]",
+            "w-full h-auto rounded-lg bg-bg-raised",
+            count === 1 ? "max-h-[70vh] object-contain" : "object-cover",
             count === 3 && i === 0 && "row-span-2 h-full"
           )}
           loading="lazy"
