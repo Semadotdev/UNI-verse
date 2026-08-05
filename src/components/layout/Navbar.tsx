@@ -356,7 +356,7 @@ export function Navbar() {
 
           <ProviderDropdown />
 
-          {!isBellHidden && <NotificationBell variant="desktop" />}
+          <NotificationBell variant="desktop" />
 
           {deferredPrompt && (
             <button

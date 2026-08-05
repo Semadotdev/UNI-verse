@@ -128,49 +128,9 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
           )}
 
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-              <h1 className="text-xl font-bold text-white truncate min-w-0">
-                {profile.name ?? profile.username ?? "User"}
-              </h1>
-              <div className="flex shrink-0 items-center gap-2">
-                {isOwn ? (
-                  <>
-                    <button
-                      onClick={() => setSearchOpen(true)}
-                      className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
-                    >
-                      Search
-                    </button>
-                    <button
-                      onClick={onEdit}
-                      className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
-                    >
-                      Edit profile
-                    </button>
-                  </>
-                ) : isFriend ? (
-                  <button
-                    onClick={() => setConfirmUnfriend(true)}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <polyline points="17 11 19 13 23 9" />
-                    </svg>
-                    Friends
-                  </button>
-                ) : (
-                  <button
-                    onClick={addFriend}
-                    disabled={friendPending}
-                    className="px-4 py-1.5 text-sm rounded-lg bg-primary text-white hover:bg-primary-light transition-colors disabled:opacity-50"
-                  >
-                    {friendPending ? "Adding..." : "Add Friend"}
-                  </button>
-                )}
-              </div>
-            </div>
+            <h1 className="text-xl font-bold text-white break-words">
+              {profile.name ?? profile.username ?? "User"}
+            </h1>
             {profile.username && (
               <p className="text-sm text-muted">@{profile.username}</p>
             )}
@@ -187,6 +147,45 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+          {isOwn ? (
+            <>
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              >
+                Search
+              </button>
+              <button
+                onClick={onEdit}
+                className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              >
+                Edit profile
+              </button>
+            </>
+          ) : isFriend ? (
+            <button
+              onClick={() => setConfirmUnfriend(true)}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <polyline points="17 11 19 13 23 9" />
+              </svg>
+              Friends
+            </button>
+          ) : (
+            <button
+              onClick={addFriend}
+              disabled={friendPending}
+              className="px-4 py-1.5 text-sm rounded-lg bg-primary text-white hover:bg-primary-light transition-colors disabled:opacity-50"
+            >
+              {friendPending ? "Adding..." : "Add Friend"}
+            </button>
+          )}
         </div>
       </div>
 
