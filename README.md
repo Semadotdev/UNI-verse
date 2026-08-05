@@ -86,6 +86,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 The app is ready for [Vercel](https://vercel.com). Connect the repository and add the environment variables from [.env.example](.env.example) in your project settings. Ensure the PostgreSQL database is reachable from the deployment region.
 
+### Post images storage
+
+The posts feed stores uploaded images in a Supabase Storage bucket named `post-images`. Create the bucket once and make it public-read (it is server-uploaded via the service role key). Image validation (type, 5 MB limit) is enforced server-side.
+
 ## Legal
 
 UNI-verse does not host any content. It aggregates publicly available content from third-party sources. Content rights belong to their respective owners. See the `/dmca` and `/legal` pages in-app for details.
