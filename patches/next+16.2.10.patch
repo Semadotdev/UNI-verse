@@ -1,0 +1,122 @@
+diff --git a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.development.js b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.development.js
+index e7612dd..d17ce1c 100644
+--- a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.development.js
++++ b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.development.js
+@@ -1642,7 +1642,7 @@
+     }
+     function triggerErrorOnChunk(response, chunk, error) {
+       if ("pending" !== chunk.status && "blocked" !== chunk.status)
+-        chunk.reason.error(error);
++        if (typeof chunk.reason.error === "function") chunk.reason.error(error);
+       else {
+         releasePendingChunk(response, chunk);
+         var listeners = chunk.reason;
+@@ -1688,7 +1688,7 @@
+       );
+     }
+     function resolveModelChunk(response, chunk, value) {
+-      if ("pending" !== chunk.status) chunk.reason.enqueueModel(value);
++      if ("pending" !== chunk.status && typeof chunk.reason.enqueueModel === "function") chunk.reason.enqueueModel(value);
+       else {
+         releasePendingChunk(response, chunk);
+         var resolveListeners = chunk.value,
+@@ -1909,6 +1909,7 @@
+             ? triggerErrorOnChunk(response, chunk, error)
+             : "fulfilled" === chunk.status &&
+               null !== chunk.reason &&
++              typeof chunk.reason.error === "function" &&
+               chunk.reason.error(error);
+         });
+         weakResponse = response._debugChannel;
+diff --git a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.production.js b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.production.js
+index 706154e..8bf39f4 100644
+--- a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.production.js
++++ b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.browser.production.js
+@@ -678,7 +678,7 @@ function wakeChunkIfInitialized(
+ }
+ function triggerErrorOnChunk(response, chunk, error) {
+   if ("pending" !== chunk.status && "blocked" !== chunk.status)
+-    chunk.reason.error(error);
++    if (typeof chunk.reason.error === "function") chunk.reason.error(error);
+   else {
+     var listeners = chunk.reason;
+     chunk.status = "rejected";
+@@ -701,7 +701,7 @@ function resolveIteratorResultChunk(response, chunk, value, done) {
+   );
+ }
+ function resolveModelChunk(response, chunk, value) {
+-  if ("pending" !== chunk.status) chunk.reason.enqueueModel(value);
++  if ("pending" !== chunk.status && typeof chunk.reason.enqueueModel === "function") chunk.reason.enqueueModel(value);
+   else {
+     var resolveListeners = chunk.value,
+       rejectListeners = chunk.reason;
+@@ -793,6 +793,7 @@ function reportGlobalError(weakResponse, error) {
+       ? triggerErrorOnChunk(weakResponse, chunk, error)
+       : "fulfilled" === chunk.status &&
+         null !== chunk.reason &&
++        typeof chunk.reason.error === "function" &&
+         chunk.reason.error(error);
+   });
+ }
+diff --git a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.development.js b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.development.js
+index fae98ef..6ed8d40 100644
+--- a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.development.js
++++ b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.development.js
+@@ -1851,7 +1851,7 @@
+     }
+     function triggerErrorOnChunk(response, chunk, error) {
+       if ("pending" !== chunk.status && "blocked" !== chunk.status)
+-        chunk.reason.error(error);
++        if (typeof chunk.reason.error === "function") chunk.reason.error(error);
+       else {
+         releasePendingChunk(response, chunk);
+         var listeners = chunk.reason;
+@@ -1897,7 +1897,7 @@
+       );
+     }
+     function resolveModelChunk(response, chunk, value) {
+-      if ("pending" !== chunk.status) chunk.reason.enqueueModel(value);
++      if ("pending" !== chunk.status && typeof chunk.reason.enqueueModel === "function") chunk.reason.enqueueModel(value);
+       else {
+         releasePendingChunk(response, chunk);
+         var resolveListeners = chunk.value,
+@@ -2062,7 +2062,7 @@
+             ? triggerErrorOnChunk(response, chunk, error)
+             : "fulfilled" === chunk.status &&
+               null !== chunk.reason &&
+-              chunk.reason.error(error);
++              typeof chunk.reason.error === "function" && chunk.reason.error(error);
+         });
+         weakResponse = response._debugChannel;
+         void 0 !== weakResponse &&
+diff --git a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.production.js b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.production.js
+index 5d86402..66fc20c 100644
+--- a/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.production.js
++++ b/node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-client.edge.production.js
+@@ -848,7 +848,7 @@ function wakeChunkIfInitialized(
+ }
+ function triggerErrorOnChunk(response, chunk, error) {
+   if ("pending" !== chunk.status && "blocked" !== chunk.status)
+-    chunk.reason.error(error);
++    if (typeof chunk.reason.error === "function") chunk.reason.error(error);
+   else {
+     var listeners = chunk.reason;
+     chunk.status = "rejected";
+@@ -871,7 +871,7 @@ function resolveIteratorResultChunk(response, chunk, value, done) {
+   );
+ }
+ function resolveModelChunk(response, chunk, value) {
+-  if ("pending" !== chunk.status) chunk.reason.enqueueModel(value);
++  if ("pending" !== chunk.status && typeof chunk.reason.enqueueModel === "function") chunk.reason.enqueueModel(value);
+   else {
+     var resolveListeners = chunk.value,
+       rejectListeners = chunk.reason;
+@@ -963,7 +963,7 @@ function reportGlobalError(weakResponse, error) {
+       ? triggerErrorOnChunk(weakResponse, chunk, error)
+       : "fulfilled" === chunk.status &&
+         null !== chunk.reason &&
+-        chunk.reason.error(error);
++        typeof chunk.reason.error === "function" && chunk.reason.error(error);
+   });
+ }
+ function createLazyChunkWrapper(chunk) {
