@@ -9,15 +9,23 @@ import type { ProfileData } from "@/components/profile/types";
 const MAX_BIO_LENGTH = 200;
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const AVATAR_TYPES = /^image\/(jpeg|png|gif|webp)$/;
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+
+export interface ProfileUpdate {
+  username: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+}
 
 interface ProfileEditorProps {
   profile: ProfileData;
   onClose: () => void;
-  onSaved: (update: { bio: string | null; avatarUrl: string | null }) => void;
+  onSaved: (update: ProfileUpdate) => void;
 }
 
 export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps) {
   const { addToast } = useToast();
+  const [username, setUsername] = useState(profile.username ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -39,6 +47,15 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
 
   const save = async () => {
     if (saving) return;
+    const cleanUsername = username.trim();
+    if (cleanUsername.length < 3 || cleanUsername.length > 20) {
+      addToast("Username must be 3-20 characters", "error");
+      return;
+    }
+    if (!USERNAME_PATTERN.test(cleanUsername)) {
+      addToast("Username can only contain letters, numbers, and underscores", "error");
+      return;
+    }
     setSaving(true);
     try {
       let avatarUrl = profile.avatarUrl;
@@ -46,10 +63,11 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
         const res = await ApiClient.upload<{ url: string }>("/api/avatar", pendingFile);
         avatarUrl = res.url;
       }
-      const updated = await ApiClient.put<{ bio: string | null; avatarUrl: string | null }>(
-        "/api/me",
-        { bio, avatarUrl }
-      );
+      const updated = await ApiClient.put<ProfileUpdate>("/api/me", {
+        username: cleanUsername,
+        bio,
+        avatarUrl,
+      });
       addToast("Profile updated", "success");
       onSaved(updated);
       onClose();
@@ -106,6 +124,25 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
             onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
           />
         </label>
+      </div>
+
+      <div className="mt-4">
+        <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
+          Username
+        </label>
+        <div className="flex items-center rounded-lg border border-border bg-bg-overlay focus-within:border-primary/50">
+          <span className="pl-3 text-sm text-muted">@</span>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.slice(0, 20))}
+            placeholder="username"
+            className="w-full bg-transparent px-2 py-2 text-sm text-zinc-200 placeholder:text-muted focus:outline-none"
+          />
+        </div>
+        <p className="mt-1 text-right text-xs text-muted">
+          {username.length}/20
+        </p>
       </div>
 
       <div className="mt-4">

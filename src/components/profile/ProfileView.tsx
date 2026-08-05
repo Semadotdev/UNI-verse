@@ -128,8 +128,8 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
           )}
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <h1 className="text-xl font-bold text-white truncate">
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
+              <h1 className="text-xl font-bold text-white truncate min-w-0">
                 {profile.name ?? profile.username ?? "User"}
               </h1>
               <div className="flex shrink-0 items-center gap-2">

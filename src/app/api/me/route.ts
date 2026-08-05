@@ -4,6 +4,11 @@ import { prisma } from '@/infrastructure/database/prisma-client';
 import { successResponse, errorResponse } from '@/domain/types/api';
 
 const MAX_BIO_LENGTH = 200;
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
+
+function validationError(message: string) {
+  return NextResponse.json(errorResponse('VALIDATION_ERROR', message), { status: 400 });
+}
 
 export async function GET() {
   try {
@@ -50,15 +55,27 @@ export async function PUT(request: NextRequest) {
     const userId = await getAuthUserId();
     const body = await request.json().catch(() => ({}));
 
-    const data: { bio?: string | null; avatarUrl?: string | null } = {};
+    const data: { bio?: string | null; avatarUrl?: string | null; username?: string } = {};
+
+    if (body.username !== undefined) {
+      const username = typeof body.username === 'string' ? body.username.trim() : '';
+      if (username.length < 3 || username.length > 20) {
+        return validationError('Username must be 3-20 characters');
+      }
+      if (!USERNAME_PATTERN.test(username)) {
+        return validationError('Username can only contain letters, numbers, and underscores');
+      }
+      const existing = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+      if (existing && existing.id !== userId) {
+        return validationError('Username already taken');
+      }
+      data.username = username;
+    }
 
     if (body.bio !== undefined) {
       const bio = typeof body.bio === 'string' ? body.bio.trim() : '';
       if (bio.length > MAX_BIO_LENGTH) {
-        return NextResponse.json(
-          errorResponse('VALIDATION_ERROR', `Bio must be ${MAX_BIO_LENGTH} characters or fewer`),
-          { status: 400 }
-        );
+        return validationError(`Bio must be ${MAX_BIO_LENGTH} characters or fewer`);
       }
       data.bio = bio || null;
     }

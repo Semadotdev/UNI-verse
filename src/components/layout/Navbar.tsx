@@ -129,10 +129,12 @@ export function Navbar() {
 
   if (pathname === "/login" || pathname === "/register") return null;
 
+  const isBellHidden = pathname === "/posts" || pathname.startsWith("/profile");
+
   return (
     <>
       {/* Mobile notification bell */}
-      <NotificationBell variant="mobile" />
+      {!isBellHidden && <NotificationBell variant="mobile" />}
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-bg-raised/95 backdrop-blur-md border-t border-border">
@@ -354,7 +356,7 @@ export function Navbar() {
 
           <ProviderDropdown />
 
-          <NotificationBell variant="desktop" />
+          {!isBellHidden && <NotificationBell variant="desktop" />}
 
           {deferredPrompt && (
             <button

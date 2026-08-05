@@ -6,6 +6,7 @@ import { ProfileView } from "@/components/profile/ProfileView";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
 import type { ProfileData } from "@/components/profile/types";
+import type { ProfileUpdate } from "@/components/profile/ProfileEditor";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -19,7 +20,7 @@ export default function ProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleSaved = (update: { bio: string | null; avatarUrl: string | null }) => {
+  const handleSaved = (update: ProfileUpdate) => {
     setProfile((p) => (p ? { ...p, ...update } : p));
   };
 

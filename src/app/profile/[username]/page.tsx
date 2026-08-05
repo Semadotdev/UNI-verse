@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { useRouter } from "next/navigation";
 import { ApiClient } from "@/lib/api-client";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { ProfileEditor } from "@/components/profile/ProfileEditor";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
 import type { ProfileData, Viewer } from "@/components/profile/types";
+import type { ProfileUpdate } from "@/components/profile/ProfileEditor";
 
 export default function UserProfilePage({
   params,
@@ -13,6 +15,7 @@ export default function UserProfilePage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = use(params);
+  const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [me, setMe] = useState<Viewer | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -73,7 +76,12 @@ export default function UserProfilePage({
         <ProfileEditor
           profile={profile}
           onClose={() => setEditing(false)}
-          onSaved={(update) => setProfile((p) => (p ? { ...p, ...update } : p))}
+          onSaved={(update) => {
+            setProfile((p) => (p ? { ...p, ...update } : p));
+            if (update.username && update.username !== username) {
+              router.replace(`/profile/${encodeURIComponent(update.username)}`);
+            }
+          }}
         />
       )}
     </div>
