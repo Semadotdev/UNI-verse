@@ -45,6 +45,7 @@ export function Navbar() {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [me, setMe] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -87,10 +88,14 @@ export function Navbar() {
   useEffect(() => {
     if (!user) {
       setRole(null);
+      setMe(null);
       return;
     }
-    ApiClient.get<{ role: string }>("/api/me")
-      .then((me) => setRole(me.role))
+    ApiClient.get<{ role: string; avatarUrl: string | null; username: string | null }>("/api/me")
+      .then((me) => {
+        setRole(me.role);
+        setMe({ avatarUrl: me.avatarUrl, username: me.username });
+      })
       .catch(() => setRole(null));
   }, [user]);
 
@@ -238,6 +243,17 @@ export function Navbar() {
         {user && (
           <>
             <div className="my-4 border-t border-zinc-800" />
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Profile
+            </Link>
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
@@ -357,11 +373,26 @@ export function Navbar() {
 
           {/* Auth button */}
           {user ? (
-            <button
-              onClick={() => setConfirmLogout(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200 ml-2"
-              title="Sign out"
-            >
+            <>
+              <Link
+                href="/profile"
+                title="Profile"
+                className="ml-2 flex items-center justify-center w-9 h-9 rounded-full overflow-hidden border border-border bg-bg-overlay hover:border-primary/50 transition-all duration-200 shrink-0"
+              >
+                {me?.avatarUrl ? (
+                  <img src={me.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="h-5 w-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                )}
+              </Link>
+              <button
+                onClick={() => setConfirmLogout(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200 ml-1"
+                title="Sign out"
+              >
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
@@ -369,6 +400,7 @@ export function Navbar() {
               </svg>
               <span className="font-medium hidden lg:inline">Sign Out</span>
             </button>
+            </>
           ) : (
             <Link
               href="/login"

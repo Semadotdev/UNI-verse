@@ -30,17 +30,35 @@ type PostWithRelations = Prisma.PostGetPayload<{ include: typeof POST_INCLUDE }>
 export class PostService {
   private readonly uploadService = new UploadService();
 
-  async listFeed(userId: string, page = 1, limit = DEFAULT_PAGE_SIZE): Promise<PaginatedResult<Post>> {
+  async listFeed(
+    userId: string,
+    page = 1,
+    limit = DEFAULT_PAGE_SIZE,
+    filter?: { username?: string }
+  ): Promise<PaginatedResult<Post>> {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const skip = (page - 1) * safeLimit;
 
-    const posts = await prisma.post.findMany({
-      include: POST_INCLUDE,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: safeLimit,
-    });
-    const total = await prisma.post.count();
+    const where: Prisma.PostWhereInput = {};
+    if (filter?.username) {
+      const author = await prisma.user.findUnique({
+        where: { username: filter.username },
+        select: { id: true },
+      });
+      if (!author) return { data: [], page, totalPages: 0, hasMore: false };
+      where.authorId = author.id;
+    }
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        include: POST_INCLUDE,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: safeLimit,
+      }),
+      prisma.post.count({ where }),
+    ]);
     const liked = await prisma.like.findMany({
       where: { userId, postId: { in: posts.map((p) => p.id) } },
       select: { postId: true },

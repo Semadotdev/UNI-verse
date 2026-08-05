@@ -22,11 +22,12 @@ interface Viewer {
 interface PostCardProps {
   post: Post;
   viewer: Viewer | null;
+  hideAuthor?: boolean;
   onEdited: (post: Post) => void;
   onDeleted: (id: string) => void;
 }
 
-export function PostCard({ post, viewer, onEdited, onDeleted }: PostCardProps) {
+export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted }: PostCardProps) {
   const { addToast } = useToast();
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [liked, setLiked] = useState(post.likedByMe);
@@ -80,17 +81,24 @@ export function PostCard({ post, viewer, onEdited, onDeleted }: PostCardProps) {
   return (
     <article className="rounded-2xl border border-border bg-bg-raised p-4">
       <div className="flex items-center gap-2">
-        {post.author.avatarUrl ? (
-          <img src={post.author.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover bg-bg-overlay" />
-        ) : (
-          <div className="w-9 h-9 rounded-full bg-primary/30" />
+        {!hideAuthor && (
+          <>
+            {post.author.avatarUrl ? (
+              <img src={post.author.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover bg-bg-overlay" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-primary/30" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-zinc-100 truncate">
+                {post.author.username ?? post.author.name ?? "Unknown"}
+              </p>
+              <p className="text-xs text-muted">{timeAgo(post.createdAt)}</p>
+            </div>
+          </>
         )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-zinc-100 truncate">
-            {post.author.username ?? post.author.name ?? "Unknown"}
-          </p>
-          <p className="text-xs text-muted">{timeAgo(post.createdAt)}</p>
-        </div>
+        {hideAuthor && (
+          <p className="flex-1 text-xs text-muted">{timeAgo(post.createdAt)}</p>
+        )}
         {menuItems.length > 0 && <PostMenu items={menuItems} />}
       </div>
 
