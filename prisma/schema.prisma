@@ -22,6 +22,12 @@ model User {
   readChapters  ReadChapter[]
   settings      UserSettings?
   mangaSettings MangaSettings[]
+  role           String           @default("user")
+  posts          Post[]
+  likes          Like[]
+  comments       Comment[]
+  postReports    PostReport[]
+  commentReports CommentReport[]
 }
 
 model Folder {
@@ -34,6 +40,7 @@ model Folder {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     Library[]
   shared    SharedFolder?
+  posts     Post[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -185,4 +192,89 @@ model Provider {
   updatedAt       DateTime @updatedAt
 
   @@index([enabled])
+}
+
+model Post {
+  id        String    @id @default(cuid())
+  authorId  String
+  body      String
+  folderId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  images    PostImage[]
+  likes     Like[]
+  comments  Comment[]
+  reports   PostReport[]
+
+  @@index([authorId, createdAt])
+}
+
+model PostImage {
+  id       String @id @default(cuid())
+  postId   String
+  url      String
+  position Int    @default(0)
+
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports   CommentReport[]
+
+  @@index([postId, createdAt])
+}
+
+model PostReport {
+  id         String   @id @default(cuid())
+  postId     String
+  reporterId String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, reporterId])
+  @@index([createdAt])
+}
+
+model CommentReport {
+  id         String   @id @default(cuid())
+  commentId  String
+  reporterId String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, reporterId])
+  @@index([createdAt])
 }
