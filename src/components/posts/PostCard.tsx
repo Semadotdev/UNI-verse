@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { PostMenu } from "@/components/posts/PostMenu";
 import { PostImageGrid } from "@/components/posts/PostImageGrid";
 import { FolderAttachmentCard } from "@/components/posts/FolderAttachmentCard";
+import { FolderPreviewModal } from "@/components/posts/FolderPreviewModal";
 import { CommentSection } from "@/components/posts/CommentSection";
 import { ReportModal } from "@/components/posts/ReportModal";
 import { ConfirmModal } from "@/components/posts/ConfirmModal";
@@ -37,6 +38,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [showReport, setShowReport] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [folderOpen, setFolderOpen] = useState(false);
 
   const menuItems: { label: string; danger?: boolean; onClick: () => void }[] = [];
   if (post.canEdit) {
@@ -136,7 +138,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted
 
       {post.folder && (
         <div className="mt-3">
-          <FolderAttachmentCard folder={post.folder} />
+          <FolderAttachmentCard folder={post.folder} onClick={() => setFolderOpen(true)} />
         </div>
       )}
 
@@ -190,6 +192,13 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted
         onClose={() => setShowDelete(false)}
         onConfirm={confirmDelete}
       />
+      {folderOpen && post.folder && (
+        <FolderPreviewModal
+          postId={post.id}
+          folder={post.folder}
+          onClose={() => setFolderOpen(false)}
+        />
+      )}
     </article>
   );
 }

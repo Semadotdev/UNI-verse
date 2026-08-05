@@ -17,6 +17,22 @@ export interface PostFolder {
   covers: PostFolderCover[];
 }
 
+export interface PostFolderItem {
+  providerId: string;
+  mangaId: string;
+  title: string;
+  coverUrl: string;
+  status: string;
+  categories: string[];
+}
+
+export interface FolderPreview {
+  id: string;
+  name: string;
+  itemCount: number;
+  items: PostFolderItem[];
+}
+
 export interface Post {
   id: string;
   body: string;
