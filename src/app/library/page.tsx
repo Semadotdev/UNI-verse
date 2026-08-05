@@ -21,6 +21,7 @@ export default function LibraryPage() {
     renameFolder,
     deleteFolder,
     refresh,
+    refreshFolders,
   } = useLibrary();
   const { addToast } = useToast();
 
@@ -47,7 +48,8 @@ export default function LibraryPage() {
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    refreshFolders();
+  }, [refresh, refreshFolders]);
 
   const handleRemove = useCallback(
     (libraryId: string) => {

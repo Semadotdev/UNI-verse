@@ -101,11 +101,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         ApiClient.get<LibraryItem[]>(url)
           .then((items) => setLibrary(items))
           .catch(() => {});
+        refreshFolders();
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [selectedFolderId]);
+  }, [selectedFolderId, refreshFolders]);
 
   const addToLibrary = async (providerId: string, mangaId: string, title: string, coverUrl: string, folderId?: string | null) => {
     try {
