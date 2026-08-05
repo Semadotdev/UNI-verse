@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ApiClient } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 import { timeAgo } from "@/shared/utils/time";
@@ -75,16 +76,37 @@ export function CommentSection({ postId, viewer, onCountChange }: CommentSection
 
       {comments.map((comment) => (
         <div key={comment.id} className="flex gap-2">
-          {comment.author.avatarUrl ? (
+          {comment.author.username ? (
+            <Link
+              href={`/profile/${encodeURIComponent(comment.author.username)}`}
+              className="shrink-0"
+              title="View profile"
+            >
+              {comment.author.avatarUrl ? (
+                <img src={comment.author.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover bg-bg-overlay hover:opacity-80 transition-opacity" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-primary/30 hover:opacity-80 transition-opacity" />
+              )}
+            </Link>
+          ) : comment.author.avatarUrl ? (
             <img src={comment.author.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover bg-bg-overlay shrink-0" />
           ) : (
             <div className="w-7 h-7 rounded-full bg-primary/30 shrink-0" />
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-zinc-200 truncate">
-                {comment.author.username ?? comment.author.name ?? "Unknown"}
-              </span>
+              {comment.author.username ? (
+                <Link
+                  href={`/profile/${encodeURIComponent(comment.author.username)}`}
+                  className="text-xs font-semibold text-zinc-200 truncate hover:text-primary-light transition-colors"
+                >
+                  {comment.author.username}
+                </Link>
+              ) : (
+                <span className="text-xs font-semibold text-zinc-200 truncate">
+                  {comment.author.username ?? comment.author.name ?? "Unknown"}
+                </span>
+              )}
               <span className="text-[11px] text-muted shrink-0">{timeAgo(comment.createdAt)}</span>
             </div>
             <p className="text-sm text-zinc-300 whitespace-pre-wrap break-words">{comment.body}</p>

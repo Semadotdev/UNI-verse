@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ApiClient } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 import { timeAgo } from "@/shared/utils/time";
@@ -83,15 +84,36 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted
       <div className="flex items-center gap-2">
         {!hideAuthor && (
           <>
-            {post.author.avatarUrl ? (
+            {post.author.username ? (
+              <Link
+                href={`/profile/${encodeURIComponent(post.author.username)}`}
+                className="shrink-0"
+                title="View profile"
+              >
+                {post.author.avatarUrl ? (
+                  <img src={post.author.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover bg-bg-overlay hover:opacity-80 transition-opacity" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-primary/30 hover:opacity-80 transition-opacity" />
+                )}
+              </Link>
+            ) : post.author.avatarUrl ? (
               <img src={post.author.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover bg-bg-overlay" />
             ) : (
               <div className="w-9 h-9 rounded-full bg-primary/30" />
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-zinc-100 truncate">
-                {post.author.username ?? post.author.name ?? "Unknown"}
-              </p>
+              {post.author.username ? (
+                <Link
+                  href={`/profile/${encodeURIComponent(post.author.username)}`}
+                  className="block text-sm font-semibold text-zinc-100 truncate hover:text-primary-light transition-colors"
+                >
+                  {post.author.username}
+                </Link>
+              ) : (
+                <p className="text-sm font-semibold text-zinc-100 truncate">
+                  {post.author.username ?? post.author.name ?? "Unknown"}
+                </p>
+              )}
               <p className="text-xs text-muted">{timeAgo(post.createdAt)}</p>
             </div>
           </>
