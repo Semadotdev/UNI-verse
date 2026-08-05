@@ -9,6 +9,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ProviderDropdown } from "@/components/navbar/ProviderDropdown";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Modal } from "@/components/ui/Modal";
+import { ApiClient } from "@/lib/api-client";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useToast } from "@/contexts/ToastContext";
 import type { User } from "@supabase/supabase-js";
@@ -22,6 +23,7 @@ interface ProviderInfo {
 const navItems = [
   { href: "/", label: "Home", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>) },
   { href: "/search", label: "Search", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>) },
+  { href: "/posts", label: "Posts", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>) },
   { href: "/library", label: "Library", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>) },
   { href: "/history", label: "History", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>) },
 ];
@@ -42,6 +44,7 @@ export function Navbar() {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -80,6 +83,16 @@ export function Navbar() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setRole(null);
+      return;
+    }
+    ApiClient.get<{ role: string }>("/api/me")
+      .then((me) => setRole(me.role))
+      .catch(() => setRole(null));
+  }, [user]);
 
   useEffect(() => {
     fetch("/api/providers")
@@ -208,6 +221,20 @@ export function Navbar() {
           </>
         )}
 
+        {role === "admin" && (
+          <>
+            <div className="my-4 border-t border-zinc-800" />
+            <Link
+              href="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex w-full items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              Admin
+            </Link>
+          </>
+        )}
+
         {user && (
           <>
             <div className="my-4 border-t border-zinc-800" />
@@ -291,6 +318,21 @@ export function Navbar() {
               </Link>
             );
           })}
+
+          {role === "admin" && (
+            <Link
+              href="/admin"
+              className={cn(
+                "relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200",
+                pathname === "/admin"
+                  ? "text-primary-light bg-primary/15"
+                  : "text-muted hover:text-zinc-200 hover:bg-bg-overlay"
+              )}
+            >
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              <span className="font-medium">Admin</span>
+            </Link>
+          )}
 
           <div className="w-px h-6 bg-border mx-1" />
 
