@@ -78,4 +78,21 @@ export class ApiClient {
     }
     return `/api/image?${params.toString()}`;
   }
+
+  static async upload<T>(url: string, file: File): Promise<T> {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`${API_BASE}${url}`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data: ApiResponse<T> = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error?.message || "Upload failed");
+    }
+
+    return data.data as T;
+  }
 }
