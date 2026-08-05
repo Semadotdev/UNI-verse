@@ -1,19 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { prisma } from '@/infrastructure/database/prisma-client';
+import { FriendService } from '@/application/services/friend.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
+
+const friendService = new FriendService();
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
   try {
-    await getAuthUserId();
+    const viewerId = await getAuthUserId();
     const { username } = await params;
 
     const user = await prisma.user.findUnique({
       where: { username },
       select: {
+        id: true,
         username: true,
         name: true,
         avatarUrl: true,
@@ -26,6 +30,11 @@ export async function GET(
       return NextResponse.json(errorResponse('NOT_FOUND', 'User not found'), { status: 404 });
     }
 
+    const [isFriend, friendCount] = await Promise.all([
+      friendService.isFriend(viewerId, user.id),
+      friendService.friendCount(user.id),
+    ]);
+
     return NextResponse.json(
       successResponse({
         username: user.username,
@@ -34,6 +43,8 @@ export async function GET(
         bio: user.bio,
         createdAt: user.createdAt.toISOString(),
         postCount: user._count.posts,
+        friendCount,
+        isFriend,
       })
     );
   } catch (error) {

@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ApiClient } from "@/lib/api-client";
+import { useToast } from "@/contexts/ToastContext";
 import { PostCard } from "@/components/posts/PostCard";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
+import { FriendSearch } from "@/components/profile/FriendSearch";
+import { ConfirmModal } from "@/components/posts/ConfirmModal";
 import type { Post } from "@/domain/entities/post";
 import type { ProfileData, Viewer } from "@/components/profile/types";
 
@@ -15,12 +18,18 @@ interface ProfileViewProps {
 }
 
 export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps) {
+  const { addToast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [postCount, setPostCount] = useState(profile.postCount);
+  const [isFriend, setIsFriend] = useState(profile.isFriend ?? false);
+  const [friendCount, setFriendCount] = useState(profile.friendCount ?? 0);
+  const [friendPending, setFriendPending] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [confirmUnfriend, setConfirmUnfriend] = useState(false);
 
   const username = profile.username ?? "";
 
@@ -43,6 +52,12 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
     load(1).catch(() => {}).finally(() => setLoading(false));
   }, [load]);
 
+  useEffect(() => {
+    setIsFriend(profile.isFriend ?? false);
+    setFriendCount(profile.friendCount ?? 0);
+    setPostCount(profile.postCount);
+  }, [profile]);
+
   const handleSaved = (post: Post) => {
     setPosts((prev) => {
       const exists = prev.some((p) => p.id === post.id);
@@ -64,6 +79,33 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
       // ignore
     } finally {
       setLoadingMore(false);
+    }
+  };
+
+  const addFriend = async () => {
+    if (friendPending || !profile.username) return;
+    setFriendPending(true);
+    try {
+      await ApiClient.post("/api/friends", { username: profile.username });
+      setIsFriend(true);
+      setFriendCount((c) => c + 1);
+      addToast("Friend added", "success");
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : "Failed to add friend", "error");
+    } finally {
+      setFriendPending(false);
+    }
+  };
+
+  const unfriend = async () => {
+    if (!profile.username) return;
+    try {
+      await ApiClient.delete(`/api/friends?username=${encodeURIComponent(profile.username)}`);
+      setIsFriend(false);
+      setFriendCount((c) => Math.max(0, c - 1));
+      addToast("Friend removed", "success");
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : "Failed to remove friend", "error");
     }
   };
 
@@ -90,14 +132,44 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
               <h1 className="text-xl font-bold text-white truncate">
                 {profile.name ?? profile.username ?? "User"}
               </h1>
-              {isOwn && (
-                <button
-                  onClick={onEdit}
-                  className="shrink-0 px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
-                >
-                  Edit profile
-                </button>
-              )}
+              <div className="flex shrink-0 items-center gap-2">
+                {isOwn ? (
+                  <>
+                    <button
+                      onClick={() => setSearchOpen(true)}
+                      className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+                    >
+                      Search
+                    </button>
+                    <button
+                      onClick={onEdit}
+                      className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+                    >
+                      Edit profile
+                    </button>
+                  </>
+                ) : isFriend ? (
+                  <button
+                    onClick={() => setConfirmUnfriend(true)}
+                    className="flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <polyline points="17 11 19 13 23 9" />
+                    </svg>
+                    Friends
+                  </button>
+                ) : (
+                  <button
+                    onClick={addFriend}
+                    disabled={friendPending}
+                    className="px-4 py-1.5 text-sm rounded-lg bg-primary text-white hover:bg-primary-light transition-colors disabled:opacity-50"
+                  >
+                    {friendPending ? "Adding..." : "Add Friend"}
+                  </button>
+                )}
+              </div>
             </div>
             {profile.username && (
               <p className="text-sm text-muted">@{profile.username}</p>
@@ -109,6 +181,9 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
               {joinedAt && <span>Joined {joinedAt}</span>}
               <span>
                 {postCount} {postCount === 1 ? "post" : "posts"}
+              </span>
+              <span>
+                {friendCount} {friendCount === 1 ? "friend" : "friends"}
               </span>
             </div>
           </div>
@@ -149,6 +224,17 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
           )}
         </div>
       )}
+
+      {searchOpen && <FriendSearch onClose={() => setSearchOpen(false)} />}
+
+      <ConfirmModal
+        open={confirmUnfriend}
+        title="Unfriend"
+        message={`Remove ${profile.username ? "@" + profile.username : "this user"} from your friends?`}
+        confirmLabel="Unfriend"
+        onClose={() => setConfirmUnfriend(false)}
+        onConfirm={unfriend}
+      />
     </div>
   );
 }

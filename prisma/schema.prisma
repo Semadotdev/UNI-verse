@@ -29,6 +29,21 @@ model User {
   comments       Comment[]
   postReports    PostReport[]
   commentReports CommentReport[]
+  friends        Friend[] @relation("Friendships")
+  friendOf       Friend[] @relation("FriendOf")
+}
+
+model Friend {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation("Friendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend    User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([friendId])
 }
 
 model Folder {

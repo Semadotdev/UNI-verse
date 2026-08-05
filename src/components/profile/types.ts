@@ -5,6 +5,8 @@ export interface ProfileData {
   bio: string | null;
   createdAt: string;
   postCount: number;
+  friendCount?: number;
+  isFriend?: boolean;
 }
 
 export interface Viewer {

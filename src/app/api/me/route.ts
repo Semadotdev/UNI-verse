@@ -18,7 +18,7 @@ export async function GET() {
         bio: true,
         role: true,
         createdAt: true,
-        _count: { select: { posts: true } },
+        _count: { select: { posts: true, friends: true } },
       },
     });
     if (!user) {
@@ -34,6 +34,7 @@ export async function GET() {
         role: user.role,
         createdAt: user.createdAt.toISOString(),
         postCount: user._count.posts,
+        friendCount: user._count.friends,
       })
     );
   } catch (error) {
