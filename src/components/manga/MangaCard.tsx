@@ -10,10 +10,11 @@ interface MangaCardProps {
   manga: Manga;
   showChapterBadge?: boolean;
   onRemove?: () => void;
+  onAdd?: () => void;
   readProgress?: number;
 }
 
-export function MangaCard({ manga, showChapterBadge = false, onRemove, readProgress }: MangaCardProps) {
+export function MangaCard({ manga, showChapterBadge = false, onRemove, onAdd, readProgress }: MangaCardProps) {
   const imageUrl = manga.cover ? ApiClient.imageUrl(manga.cover) : null;
   const [imgError, setImgError] = useState(false);
 
@@ -44,6 +45,25 @@ export function MangaCard({ manga, showChapterBadge = false, onRemove, readProgr
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded-md text-[11px] font-semibold text-zinc-200 border border-white/10">
             {manga.pageCount ? `Pgs. ${manga.pageCount}` : `Ch. ${manga.latestChapter}`}
           </div>
+        )}
+
+        {/* Add button */}
+        {onAdd && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onAdd();
+            }}
+            className="absolute top-2 left-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-primary/90 text-white hover:bg-primary border border-white/10 shadow-lg transition-colors duration-150"
+            aria-label="Add to library"
+          >
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
         )}
 
         {/* Remove button */}

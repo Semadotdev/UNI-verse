@@ -2,6 +2,8 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import { useLibrary } from "@/contexts/LibraryContext";
+import { useToast } from "@/contexts/ToastContext";
+import { ApiClient } from "@/lib/api-client";
 import { MangaCard } from "@/components/manga/MangaCard";
 import { MangaGridSkeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
@@ -20,12 +22,16 @@ export default function LibraryPage() {
     deleteFolder,
     refresh,
   } = useLibrary();
+  const { addToast } = useToast();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameName, setRenameName] = useState("");
   const [folderActions, setFolderActions] = useState<{ id: string; name: string } | null>(null);
+  const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
+  const [shareData, setShareData] = useState<{ token: string; url: string } | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmDeleteFolder, setConfirmDeleteFolder] = useState<{ id: string; name: string } | null>(null);
   const createInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +84,62 @@ export default function LibraryPage() {
   const handleDeleteFolder = async (folderId: string) => {
     const folder = folders.find((f) => f.id === folderId);
     setConfirmDeleteFolder({ id: folderId, name: folder?.name ?? "this folder" });
+  };
+
+  const openShare = async (folderId: string, name: string) => {
+    setFolderActions(null);
+    setShareTarget({ id: folderId, name });
+    setShareData(null);
+    setShareLoading(true);
+    try {
+      const data = await ApiClient.get<{ token: string; url: string } | null>(
+        `/api/library/folders/${folderId}/share`
+      );
+      setShareData(data);
+    } catch {
+      addToast("Failed to load share link", "error");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const createShare = async () => {
+    if (!shareTarget) return;
+    setShareLoading(true);
+    try {
+      const data = await ApiClient.post<{ token: string; url: string }>(
+        `/api/library/folders/${shareTarget.id}/share`
+      );
+      setShareData(data);
+    } catch {
+      addToast("Failed to create share link", "error");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const stopSharing = async () => {
+    if (!shareTarget) return;
+    setShareLoading(true);
+    try {
+      await ApiClient.delete(`/api/library/folders/${shareTarget.id}/share`);
+      setShareData(null);
+      addToast("Sharing stopped", "info");
+    } catch {
+      addToast("Failed to stop sharing", "error");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const copyShareLink = async () => {
+    if (!shareData) return;
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${shareData.url}`);
+      addToast("Link copied", "success");
+    } catch {
+      addToast("Copy failed", "error");
+    }
   };
 
   const totalItems = folders.reduce((sum, f) => sum + f.count, 0);
@@ -233,6 +295,19 @@ export default function LibraryPage() {
           </button>
           <button
             onClick={() => {
+              if (folderActions) openShare(folderActions.id, folderActions.name);
+            }}
+            className="flex items-center gap-3 w-full px-3 py-2.5 text-sm text-left rounded-lg hover:bg-zinc-800 text-zinc-200 transition-colors"
+          >
+            <svg className="h-4 w-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+            Share
+          </button>
+          <button
+            onClick={() => {
               if (folderActions) handleDeleteFolder(folderActions.id);
               setFolderActions(null);
             }}
@@ -377,6 +452,52 @@ export default function LibraryPage() {
           Delete folder <span className="font-semibold text-zinc-100">&ldquo;{confirmDeleteFolder?.name}&rdquo;</span>?
           All manga in this folder will be moved to Uncategorized.
         </p>
+      </Modal>
+
+      {/* Share folder modal */}
+      <Modal
+        open={shareTarget !== null}
+        onClose={() => setShareTarget(null)}
+        title={`Share "${shareTarget?.name}"`}
+        size="sm"
+      >
+        {shareLoading ? (
+          <div className="py-6 text-center text-sm text-muted">Loading...</div>
+        ) : shareData ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted">Anyone with this link can view this folder.</p>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={`${window.location.origin}${shareData.url}`}
+                onFocus={(e) => e.currentTarget.select()}
+                className="flex-1 min-w-0 px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-primary transition-colors"
+              />
+              <button
+                onClick={copyShareLink}
+                className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all"
+              >
+                Copy
+              </button>
+            </div>
+            <button
+              onClick={stopSharing}
+              className="px-4 py-2 text-sm rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-all"
+            >
+              Stop sharing
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted">Share this folder with a public link.</p>
+            <button
+              onClick={createShare}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all"
+            >
+              Create share link
+            </button>
+          </div>
+        )}
       </Modal>
     </div>
   );
