@@ -14,6 +14,8 @@ export interface MangaOverrides {
 
 const STORAGE_PREFIX = "uni-verse-manga-settings:";
 
+const VALID_READING_MODES = ["long-strip", "paged-ltr", "paged-rtl", "paged-vertical"];
+
 function getKey(providerId: string, mangaId: string) {
   return `${STORAGE_PREFIX}${providerId}:${mangaId}`;
 }
@@ -21,7 +23,15 @@ function getKey(providerId: string, mangaId: string) {
 function loadOverrides(providerId: string, mangaId: string): MangaOverrides {
   try {
     const raw = localStorage.getItem(getKey(providerId, mangaId));
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && "readingMode" in parsed) {
+      const mode = parsed.readingMode as string;
+      if (!VALID_READING_MODES.includes(mode)) {
+        delete parsed.readingMode;
+      }
+    }
+    return parsed;
   } catch {
     return {};
   }

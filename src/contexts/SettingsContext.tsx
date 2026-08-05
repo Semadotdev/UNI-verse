@@ -52,11 +52,26 @@ const defaultSettings: Settings = {
 };
 
 const STORAGE_KEY = "uni-verse-settings";
+const SETTINGS_VERSION = 2;
+const VALID_READING_MODES = ["long-strip", "paged-ltr", "paged-rtl", "paged-vertical"];
 
 function saveSettings(settings: Settings) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...settings, version: SETTINGS_VERSION }));
   } catch {}
+}
+
+function migrateSettings(stored: unknown): Settings {
+  const parsed = stored && typeof stored === "object"
+    ? stored as Partial<Settings>
+    : {};
+  const migrated: Settings = { ...defaultSettings, ...parsed };
+
+  if (!VALID_READING_MODES.includes(migrated.readingMode)) {
+    migrated.readingMode = defaultSettings.readingMode;
+  }
+
+  return migrated;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -70,7 +85,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setSettings({ ...defaultSettings, ...parsed });
+        const storedVersion = (parsed && typeof parsed === "object" && "version" in parsed)
+          ? (parsed as { version: number }).version
+          : undefined;
+        const settings = migrateSettings(parsed);
+        setSettings(settings);
+        if (storedVersion !== SETTINGS_VERSION) {
+          saveSettings(settings);
+        }
       }
     } catch {}
     setLoading(false);

@@ -15,6 +15,8 @@ import { ApiClient } from "@/lib/api-client";
 import type { Chapter } from "@/domain/entities/chapter";
 import type { Manga } from "@/domain/entities/manga";
 
+const SWIPE_HINT_KEY = "uni-verse-swipe-hint-shown";
+
 export default function ReaderPage() {
   const params = useParams();
   const router = useRouter();
@@ -121,15 +123,27 @@ export default function ReaderPage() {
     return () => { if (toolbarTimeout.current) clearTimeout(toolbarTimeout.current); };
   }, []);
 
-  // Show swipe indicator on first load for paged mode on mobile
+  // Show a one-time swipe hint on the first chapter read (mobile only)
   useEffect(() => {
-    if (!isLongStrip && window.innerWidth < 768) {
-      setShowSwipeIndicator(true);
-      if (swipeIndicatorTimeout.current) clearTimeout(swipeIndicatorTimeout.current);
-      swipeIndicatorTimeout.current = setTimeout(() => setShowSwipeIndicator(false), 3000);
-    }
+    if (window.innerWidth >= 768) return;
+    if (localStorage.getItem(SWIPE_HINT_KEY)) return;
+    if (loading || pages.length === 0) return;
+
+    setShowSwipeIndicator(true);
+    localStorage.setItem(SWIPE_HINT_KEY, "1");
+    if (swipeIndicatorTimeout.current) clearTimeout(swipeIndicatorTimeout.current);
+    swipeIndicatorTimeout.current = setTimeout(() => setShowSwipeIndicator(false), 3000);
+
     return () => { if (swipeIndicatorTimeout.current) clearTimeout(swipeIndicatorTimeout.current); };
-  }, [isLongStrip]);
+  }, [isLongStrip, loading, pages.length]);
+
+  // Dismiss the hint on first touch
+  useEffect(() => {
+    if (!showSwipeIndicator) return;
+    const dismiss = () => setShowSwipeIndicator(false);
+    window.addEventListener("touchstart", dismiss, { once: true, passive: true });
+    return () => window.removeEventListener("touchstart", dismiss);
+  }, [showSwipeIndicator]);
 
   // Reset auto-scroll when chapter changes
   useEffect(() => {
@@ -450,11 +464,13 @@ export default function ReaderPage() {
         )}
       </div>
 
-      {/* Swipe indicator — mobile paged mode only */}
-      {!isLongStrip && showSwipeIndicator && !toolbarsVisible && (
-        <div className="md:hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 animate-fade-in">
+      {/* Swipe indicator — one-time mobile hint */}
+      {showSwipeIndicator && (
+        <div className="md:hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex items-center gap-3 px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 animate-fade-in pointer-events-none">
           <ChevronLeft className="h-4 w-4 text-white/50" />
-          <span className="text-xs text-white/60 font-medium tracking-wide">Swipe</span>
+          <span className="text-xs text-white/60 font-medium tracking-wide whitespace-nowrap">
+            {isLongStrip ? "Swipe for next / prev chapter" : "Swipe to turn pages"}
+          </span>
           <ChevronRight className="h-4 w-4 text-white/50" />
         </div>
       )}
