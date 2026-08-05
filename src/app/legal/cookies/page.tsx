@@ -95,6 +95,10 @@ export default function CookiesPage() {
             <strong>uni-verse-selected-provider</strong> &mdash; Stores your currently selected manga
             content provider (e.g., Asura Scans, MangaDex, Manhwa18) so it persists across sessions.
           </li>
+          <li>
+            <strong>uni-verse-notifications-read</strong> &mdash; Stores which feature announcements you
+            have seen so the notification badge only appears for unread updates.
+          </li>
         </ul>
         <p>
           <strong>Note:</strong> localStorage data is specific to each browser and device. It is not

@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-verse-v2";
+const CACHE_NAME = "uni-verse-v3";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -32,6 +32,23 @@ self.addEventListener("fetch", (event) => {
   if (request.url.includes("/api/")) return;
 
   if (request.mode === "navigate") return;
+
+  // JS/CSS bundles must always come from the network first so code fixes
+  // actually reach users; fall back to cache only when offline.
+  if (request.destination === "script" || request.destination === "style" || request.url.includes("/_next/static/")) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === "basic") {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((cached) => {

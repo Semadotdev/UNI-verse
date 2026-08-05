@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { UNIverseLogo } from "@/components/UNIverseLogo";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ProviderDropdown } from "@/components/navbar/ProviderDropdown";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Modal } from "@/components/ui/Modal";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -112,6 +113,9 @@ export function Navbar() {
 
   return (
     <>
+      {/* Mobile notification bell */}
+      <NotificationBell variant="mobile" />
+
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-bg-raised/95 backdrop-blur-md border-t border-border">
         <div className="flex items-center justify-around h-16 px-2">
@@ -291,6 +295,8 @@ export function Navbar() {
           <div className="w-px h-6 bg-border mx-1" />
 
           <ProviderDropdown />
+
+          <NotificationBell variant="desktop" />
 
           {deferredPrompt && (
             <button
