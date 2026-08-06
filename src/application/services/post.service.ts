@@ -4,6 +4,9 @@ import type { Post, CreatePostInput, UpdatePostInput } from '@/domain/entities/p
 import type { PaginatedResult } from '@/domain/types/api';
 import { UploadService } from '@/application/services/upload.service';
 import { NotificationService } from '@/application/services/notification.service';
+import { isAdult } from '@/lib/age';
+import { buildFeedWhere, type PostFeed } from '@/application/services/post-feed-where';
+import { isNsfwCategories } from '@/domain/constants/nsfw-genres';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('PostService');
@@ -36,20 +39,39 @@ export class PostService {
     userId: string,
     page = 1,
     limit = DEFAULT_PAGE_SIZE,
-    filter?: { username?: string }
+    filter?: { username?: string; feed?: PostFeed }
   ): Promise<PaginatedResult<Post>> {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const skip = (page - 1) * safeLimit;
 
-    const where: Prisma.PostWhereInput = {};
+    let authorId: string | undefined;
     if (filter?.username) {
       const author = await prisma.user.findUnique({
         where: { username: filter.username },
         select: { id: true },
       });
       if (!author) return { data: [], page, totalPages: 0, hasMore: false };
-      where.authorId = author.id;
+      authorId = author.id;
     }
+
+    const [viewer, friendRows] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: { role: true, birthDate: true } }),
+      filter?.feed === 'friends'
+        ? prisma.friend.findMany({
+            where: { OR: [{ userId }, { friendId: userId }] },
+            select: { userId: true, friendId: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const friendIds = friendRows.map((r) => (r.userId === userId ? r.friendId : r.userId));
+    const where = buildFeedWhere({
+      username: filter?.username,
+      authorId,
+      feed: filter?.feed,
+      viewerIsAdult: isAdult(viewer?.birthDate ?? null),
+      friendIds,
+    });
 
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
@@ -65,7 +87,6 @@ export class PostService {
       where: { userId, postId: { in: posts.map((p) => p.id) } },
       select: { postId: true },
     });
-    const viewer = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
 
     const likedSet = new Set(liked.map((l) => l.postId));
     const isAdmin = viewer?.role === 'admin';
@@ -81,8 +102,12 @@ export class PostService {
 
     const [liked, viewer] = await Promise.all([
       prisma.like.findUnique({ where: { postId_userId: { postId, userId: viewerId } } }),
-      prisma.user.findUnique({ where: { id: viewerId }, select: { role: true } }),
+      prisma.user.findUnique({ where: { id: viewerId }, select: { role: true, birthDate: true } }),
     ]);
+
+    if (post.nsfw && !isAdult(viewer?.birthDate ?? null)) {
+      return null;
+    }
 
     return this.toPost(post, viewerId, viewer?.role === 'admin', Boolean(liked));
   }
@@ -101,11 +126,16 @@ export class PostService {
       await this.assertOwnedFolder(input.folderId, authorId);
     }
 
+    const folderNsfw = input.folderId ? await this.folderHasNsfw(input.folderId) : false;
+    const explicitNsfw = Boolean(input.nsfw);
+
     const post = await prisma.post.create({
       data: {
         authorId,
         body,
         folderId: input.folderId ?? null,
+        nsfw: explicitNsfw || folderNsfw,
+        nsfwExplicit: explicitNsfw,
         images: {
           create: imageUrls.map((url, index) => ({ url, position: index })),
         },
@@ -125,17 +155,21 @@ export class PostService {
     const body = (input.body ?? existing.body).trim();
     if (body.length > MAX_BODY_LENGTH) throw new Error('Body too long');
 
-    if (input.folderId !== undefined) {
-      if (input.folderId) {
-        await this.assertOwnedFolder(input.folderId, authorId);
-      }
+    const folderId = input.folderId === undefined ? existing.folderId : input.folderId;
+    if (folderId) {
+      await this.assertOwnedFolder(folderId, authorId);
     }
+
+    const explicit = input.nsfw === undefined ? existing.nsfwExplicit : Boolean(input.nsfw);
+    const folderNsfw = folderId ? await this.folderHasNsfw(folderId) : false;
 
     await prisma.post.update({
       where: { id: postId },
       data: {
         body,
-        folderId: input.folderId === undefined ? existing.folderId : input.folderId,
+        folderId,
+        nsfw: explicit || folderNsfw,
+        nsfwExplicit: explicit,
       },
     });
 
@@ -177,6 +211,14 @@ export class PostService {
   private async assertOwnedFolder(folderId: string, userId: string): Promise<void> {
     const folder = await prisma.folder.findFirst({ where: { id: folderId, userId } });
     if (!folder) throw new Error('Folder not found');
+  }
+
+  private async folderHasNsfw(folderId: string): Promise<boolean> {
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId },
+      select: { items: { select: { categories: true } } },
+    });
+    return folder ? folder.items.some((item) => isNsfwCategories(item.categories)) : false;
   }
 
   private toPost(p: PostWithRelations, viewerId: string, isAdmin: boolean, likedByMe: boolean): Post {
