@@ -6,4 +6,6 @@ export interface Comment {
   createdAt: string;
   author: PostAuthor;
   canDelete: boolean;
+  parentId: string | null;
+  replies: Comment[];
 }

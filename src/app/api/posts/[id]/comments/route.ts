@@ -39,7 +39,12 @@ export async function POST(
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
 
-    const comment = await commentService.create(id, userId, typeof body.body === 'string' ? body.body : '');
+    const comment = await commentService.create(
+      id,
+      userId,
+      typeof body.body === 'string' ? body.body : '',
+      typeof body.parentId === 'string' ? body.parentId : undefined
+    );
     return NextResponse.json(successResponse(comment), { status: 201 });
   } catch (error) {
     return NextResponse.json(

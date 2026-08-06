@@ -39,6 +39,19 @@ export class NotificationService {
     logger.info(`Comment notification created for post ${postId}`);
   }
 
+  async onCommentReplied(parentCommentId: string, postId: string, actorId: string, commentId: string): Promise<void> {
+    const parent = await prisma.comment.findUnique({
+      where: { id: parentCommentId },
+      select: { authorId: true },
+    });
+    if (!parent || parent.authorId === actorId) return;
+
+    await prisma.notification.create({
+      data: { userId: parent.authorId, actorId, postId, commentId, type: 'reply' },
+    });
+    logger.info(`Reply notification created for comment ${parentCommentId}`);
+  }
+
   async onFriendAdded(actorId: string, friendId: string): Promise<void> {
     const existing = await prisma.notification.findFirst({
       where: { userId: friendId, actorId, type: 'friend' },
@@ -61,6 +74,7 @@ export class NotificationService {
       include: {
         actor: { select: { username: true, name: true, avatarUrl: true } },
         post: { select: { body: true } },
+        comment: { select: { body: true } },
       },
     });
 
@@ -73,6 +87,7 @@ export class NotificationService {
       createdAt: n.createdAt.toISOString(),
       actor: n.actor,
       postSnippet: n.post?.body ?? null,
+      commentSnippet: n.comment?.body ?? null,
     }));
   }
 

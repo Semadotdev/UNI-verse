@@ -102,9 +102,12 @@ function ActivityItem({ n }: { n: AppNotification }) {
   const verb =
     n.type === "like"
       ? "liked your post"
-      : n.type === "comment"
-        ? "commented on your post"
-        : "added you as a friend";
+      : n.type === "reply"
+        ? "replied to your comment"
+        : n.type === "comment"
+          ? "commented on your post"
+          : "added you as a friend";
+  const snippet = n.type === "reply" ? n.commentSnippet : n.postSnippet;
 
   return (
     <li>
@@ -134,9 +137,9 @@ function ActivityItem({ n }: { n: AppNotification }) {
           )}
         </div>
         <p className="mt-0.5 text-xs text-zinc-400">{verb}</p>
-        {n.type === "comment" && n.postSnippet && (
+        {(n.type === "comment" || n.type === "reply") && snippet && (
           <p className="mt-1 text-[11px] text-zinc-500 line-clamp-1">
-            &ldquo;{n.postSnippet}&rdquo;
+            &ldquo;{snippet}&rdquo;
           </p>
         )}
         <p className="mt-1 text-[10px] text-muted">{timeAgo(n.createdAt)}</p>
