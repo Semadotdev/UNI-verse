@@ -196,6 +196,24 @@ describe("PostService.update", () => {
     );
     expect(post.nsfw).toBe(true);
   });
+
+  it("does not error when the author has a null birthDate and updates an nsfw post", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: null } as never);
+    vi.mocked(prisma.post.findUnique)
+      .mockResolvedValueOnce(postRow({ id: "p1", folderId: "f1", nsfw: true, nsfwExplicit: false }) as never)
+      .mockResolvedValueOnce(postRow({ id: "p1", folderId: "f1", nsfw: true, nsfwExplicit: false }) as never);
+    vi.mocked(prisma.folder.findUnique).mockResolvedValue({
+      id: "f1",
+      items: [{ categories: ["Ecchi"] }],
+    } as never);
+    vi.mocked(prisma.post.update).mockResolvedValue(
+      postRow({ id: "p1", folderId: "f1", nsfw: true, nsfwExplicit: false }) as never
+    );
+
+    const post = await svc.update("p1", "u1", { body: "hello", folderId: "f1" });
+
+    expect(post.nsfw).toBe(true);
+  });
 });
 
 describe("PostService.get age gate", () => {

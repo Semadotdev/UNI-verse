@@ -96,7 +96,7 @@ export class PostService {
     return { data, page, totalPages, hasMore: page < totalPages };
   }
 
-  async get(postId: string, viewerId: string): Promise<Post | null> {
+  async get(postId: string, viewerId: string, skipAgeGate = false): Promise<Post | null> {
     const post = await prisma.post.findUnique({ where: { id: postId }, include: POST_INCLUDE });
     if (!post) return null;
 
@@ -105,7 +105,7 @@ export class PostService {
       prisma.user.findUnique({ where: { id: viewerId }, select: { role: true, birthDate: true } }),
     ]);
 
-    if (post.nsfw && !isAdult(viewer?.birthDate ?? null)) {
+    if (!skipAgeGate && post.nsfw && !isAdult(viewer?.birthDate ?? null)) {
       return null;
     }
 
@@ -173,7 +173,7 @@ export class PostService {
       },
     });
 
-    const updated = await this.get(postId, authorId);
+    const updated = await this.get(postId, authorId, true);
     if (!updated) throw new Error('Post not found');
     return updated;
   }
