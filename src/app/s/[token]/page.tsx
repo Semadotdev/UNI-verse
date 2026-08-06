@@ -27,7 +27,7 @@ interface SharedFolderData {
 export default function SharedFolderPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const router = useRouter();
-  const { isInLibrary, addToLibrary, createFolder, folders, refreshFolders } = useLibrary();
+  const { isInLibrary, addToLibrary, startBatchAdd, batchAdd } = useLibrary();
   const { addToast } = useToast();
 
   const [data, setData] = useState<SharedFolderData | null>(null);
@@ -35,7 +35,8 @@ export default function SharedFolderPage({ params }: { params: Promise<{ token: 
   const [notFound, setNotFound] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [added, setAdded] = useState<Set<string>>(new Set());
-  const [addingFolder, setAddingFolder] = useState(false);
+
+  const runningBatch = batchAdd?.key === token && batchAdd.status === "running" ? batchAdd : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -73,57 +74,14 @@ export default function SharedFolderPage({ params }: { params: Promise<{ token: 
   };
 
   const handleAddFolder = async () => {
-    if (!data || addingFolder) return;
+    if (!data || runningBatch) return;
 
     if (!loggedIn) {
       router.push(`/login?next=/s/${token}`);
       return;
     }
 
-    setAddingFolder(true);
-    try {
-      let folderId: string | null = null;
-      const existing = folders.find(
-        (f) => f.name.toLowerCase() === data.folderName.toLowerCase()
-      );
-      if (existing) {
-        folderId = existing.id;
-      } else {
-        try {
-          const folder = await createFolder(data.folderName);
-          folderId = folder.id;
-        } catch {
-          await refreshFolders();
-          const created = folders.find(
-            (f) => f.name.toLowerCase() === data.folderName.toLowerCase()
-          );
-          folderId = created?.id ?? null;
-        }
-      }
-
-      let addedCount = 0;
-      for (const item of data.items) {
-        const key = `${item.providerId}:${item.mangaId}`;
-        if (added.has(key) || isInLibrary(item.providerId, item.mangaId)) continue;
-        try {
-          await addToLibrary(item.providerId, item.mangaId, item.title, item.coverUrl, folderId);
-          setAdded((prev) => new Set(prev).add(key));
-          addedCount += 1;
-        } catch {
-          addToast(`Failed to add "${item.title}"`, "error");
-        }
-      }
-
-      if (addedCount > 0) {
-        addToast(`Added ${addedCount} to "${data.folderName}"`, "success");
-      } else {
-        addToast("Everything is already in your library", "success");
-      }
-    } catch {
-      addToast("Failed to add folder to library", "error");
-    } finally {
-      setAddingFolder(false);
-    }
+    await startBatchAdd(token, data.folderName, data.items, { reopenUrl: `/s/${token}` });
   };
 
   const mangaItems: Manga[] = (data?.items ?? []).map((item) => ({
@@ -155,10 +113,12 @@ export default function SharedFolderPage({ params }: { params: Promise<{ token: 
           loggedIn ? (
             <button
               onClick={handleAddFolder}
-              disabled={addingFolder}
+              disabled={runningBatch !== null}
               className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {addingFolder ? "Adding..." : "Add folder to my library"}
+              {runningBatch
+                ? `Adding... ${runningBatch.done}/${runningBatch.total}`
+                : "Add folder to my library"}
             </button>
           ) : (
             <button

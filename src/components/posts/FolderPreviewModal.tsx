@@ -36,13 +36,15 @@ function StatusBadge({ status }: { status: string }) {
 
 export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewModalProps) {
   const { addToast } = useToast();
-  const { isInLibrary, refresh, refreshFolders, folders, createFolder, addToLibrary } = useLibrary();
+  const { isInLibrary, startBatchAdd, batchAdd } = useLibrary();
   const [preview, setPreview] = useState<FolderPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
-  const [addingAll, setAddingAll] = useState(false);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+
+  const runningBatch = batchAdd?.key === postId && batchAdd.status === "running" ? batchAdd : null;
+  const addingAll = runningBatch !== null;
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +66,9 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
   const itemKey = (item: PostFolderItem) => `${item.providerId}:${item.mangaId}`;
 
   const alreadyAdded = (item: PostFolderItem) =>
-    addedIds.has(itemKey(item)) || isInLibrary(item.providerId, item.mangaId);
+    addedIds.has(itemKey(item)) ||
+    isInLibrary(item.providerId, item.mangaId) ||
+    (batchAdd?.addedKeys.includes(itemKey(item)) ?? false);
 
   const addOne = async (item: PostFolderItem) => {
     if (adding) return;
@@ -87,51 +91,7 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
 
   const addAll = async () => {
     if (!preview || addingAll) return;
-    setAddingAll(true);
-    try {
-      let folderId: string | null = null;
-      const existing = folders.find(
-        (f) => f.name.toLowerCase() === preview.name.toLowerCase()
-      );
-      if (existing) {
-        folderId = existing.id;
-      } else {
-        try {
-          const folder = await createFolder(preview.name);
-          folderId = folder.id;
-        } catch {
-          await refreshFolders();
-          const created = folders.find(
-            (f) => f.name.toLowerCase() === preview.name.toLowerCase()
-          );
-          folderId = created?.id ?? null;
-        }
-      }
-
-      let addedCount = 0;
-      for (const item of preview.items) {
-        if (alreadyAdded(item)) continue;
-        try {
-          await addToLibrary(item.providerId, item.mangaId, item.title, item.coverUrl, folderId);
-          setAddedIds((prev) => new Set(prev).add(itemKey(item)));
-          addedCount += 1;
-        } catch {
-          addToast(`Failed to add "${item.title}"`, "error");
-        }
-      }
-
-      await refresh();
-      await refreshFolders();
-      if (addedCount > 0) {
-        addToast(`Added ${addedCount} to "${preview.name}"`, "success");
-      } else {
-        addToast("Everything is already in your library", "success");
-      }
-    } catch {
-      addToast("Failed to add folder to library", "error");
-    } finally {
-      setAddingAll(false);
-    }
+    await startBatchAdd(postId, preview.name, preview.items);
   };
 
   return (
@@ -155,7 +115,9 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
               className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-light transition-colors disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
-              {addingAll ? "Adding..." : "Add folder to my library"}
+              {addingAll
+                ? `Adding... ${runningBatch.done}/${runningBatch.total}`
+                : "Add folder to my library"}
             </button>
           )}
         </>
@@ -185,6 +147,24 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
             <p className="mb-3 text-xs text-muted">
               {preview.itemCount} {preview.itemCount === 1 ? "item" : "items"}
             </p>
+            {runningBatch && (
+              <div className="mb-3 rounded-lg border border-border bg-bg-overlay p-3">
+                <p className="text-xs font-semibold text-zinc-200">
+                  Adding to library... {runningBatch.done}/{runningBatch.total}
+                </p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-300"
+                    style={{
+                      width: `${Math.round((runningBatch.done / Math.max(runningBatch.total, 1)) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-muted">
+                  This continues in the background if you close this window.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               {preview.items.length === 0 && (
                 <p className="py-6 text-center text-sm text-muted">This folder is empty.</p>

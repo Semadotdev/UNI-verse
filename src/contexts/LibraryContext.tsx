@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { ApiClient } from "@/lib/api-client";
+import { useToast } from "@/contexts/ToastContext";
 
 interface LibraryItem {
   id: string;
@@ -27,6 +28,25 @@ interface Folder {
   updatedAt: string;
 }
 
+export interface BatchAddItem {
+  providerId: string;
+  mangaId: string;
+  title: string;
+  coverUrl: string;
+}
+
+export interface BatchAddState {
+  status: 'running' | 'done';
+  key: string;
+  folderName: string;
+  total: number;
+  done: number;
+  failed: number;
+  addedKeys: string[];
+  currentTitle: string | null;
+  reopenUrl: string | null;
+}
+
 interface LibraryContextType {
   library: LibraryItem[];
   folders: Folder[];
@@ -43,6 +63,9 @@ interface LibraryContextType {
   moveToFolder: (libraryId: string, folderId: string | null) => Promise<void>;
   refresh: () => Promise<void>;
   refreshFolders: () => Promise<void>;
+  batchAdd: BatchAddState | null;
+  startBatchAdd: (key: string, folderName: string, items: BatchAddItem[], opts?: { reopenUrl?: string }) => Promise<void>;
+  dismissBatchAdd: () => void;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -52,6 +75,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [batchAdd, setBatchAdd] = useState<BatchAddState | null>(null);
+  const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { addToast } = useToast();
 
   const refreshFolders = useCallback(async () => {
     try {
@@ -169,6 +195,110 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     await refreshFolders();
   };
 
+  const addLibraryItem = async (providerId: string, mangaId: string, title: string, coverUrl: string, folderId: string | null) => {
+    await ApiClient.post("/api/library", { providerId, mangaId, title, coverUrl, folderId });
+  };
+
+  const dismissBatchAdd = useCallback(() => {
+    if (batchTimerRef.current) {
+      clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
+    setBatchAdd(null);
+  }, []);
+
+  const startBatchAdd = useCallback(async (key: string, folderName: string, items: BatchAddItem[], opts?: { reopenUrl?: string }) => {
+    if (batchAdd?.status === 'running') return;
+    if (batchTimerRef.current) {
+      clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = null;
+    }
+
+    const initialKeys = items
+      .map((i) => `${i.providerId}:${i.mangaId}`)
+      .filter((itemKey) => library.some((l) => l.providerId === itemKey.split(":")[0] && l.mangaId === itemKey.split(":")[1]));
+    setBatchAdd({
+      status: 'running',
+      key,
+      folderName,
+      total: items.length,
+      done: 0,
+      failed: 0,
+      addedKeys: initialKeys,
+      currentTitle: null,
+      reopenUrl: opts?.reopenUrl ?? null,
+    });
+
+    try {
+      let folderId: string | null = null;
+      const existing = folders.find((f) => f.name.toLowerCase() === folderName.toLowerCase());
+      if (existing) {
+        folderId = existing.id;
+      } else {
+        try {
+          const folder = await createFolder(folderName);
+          folderId = folder.id;
+        } catch {
+          await refreshFolders();
+          const created = folders.find((f) => f.name.toLowerCase() === folderName.toLowerCase());
+          folderId = created?.id ?? null;
+        }
+      }
+
+      let done = 0;
+      let failed = 0;
+      const addedKeys = new Set(initialKeys);
+      for (const item of items) {
+        const itemKey = `${item.providerId}:${item.mangaId}`;
+        setBatchAdd((prev) => prev ? { ...prev, currentTitle: item.title } : prev);
+        if (addedKeys.has(itemKey) || isInLibrary(item.providerId, item.mangaId)) {
+          done += 1;
+          setBatchAdd((prev) => prev ? { ...prev, done, failed } : prev);
+          continue;
+        }
+        try {
+          await addLibraryItem(item.providerId, item.mangaId, item.title, item.coverUrl, folderId);
+          addedKeys.add(itemKey);
+          done += 1;
+          setBatchAdd((prev) => prev ? { ...prev, done, failed, addedKeys: Array.from(addedKeys) } : prev);
+        } catch {
+          failed += 1;
+          done += 1;
+          setBatchAdd((prev) => prev ? { ...prev, done, failed } : prev);
+        }
+      }
+
+      await refresh();
+      await refreshFolders();
+
+      const addedCount = done - failed;
+      if (addedCount > 0 && failed === 0) {
+        addToast(`Added ${addedCount} to "${folderName}"`, "success");
+      } else if (addedCount > 0) {
+        addToast(`Added ${addedCount} to "${folderName}", ${failed} failed`, "warning");
+      } else if (failed > 0) {
+        addToast(`Failed to add ${failed} items`, "error");
+      } else {
+        addToast("Everything is already in your library", "success");
+      }
+
+      setBatchAdd((prev) => prev ? { ...prev, status: 'done', currentTitle: null } : prev);
+      batchTimerRef.current = setTimeout(() => {
+        setBatchAdd(null);
+        batchTimerRef.current = null;
+      }, 3000);
+    } catch {
+      addToast("Failed to add folder to library", "error");
+      setBatchAdd(null);
+    }
+  }, [batchAdd?.status, folders, library, createFolder, refresh, refreshFolders, isInLibrary, addToast]);
+
+  useEffect(() => {
+    return () => {
+      if (batchTimerRef.current) clearTimeout(batchTimerRef.current);
+    };
+  }, []);
+
   return (
     <LibraryContext.Provider value={{
       library,
@@ -186,6 +316,9 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       moveToFolder,
       refresh,
       refreshFolders,
+      batchAdd,
+      startBatchAdd,
+      dismissBatchAdd,
     }}>
       {children}
     </LibraryContext.Provider>
