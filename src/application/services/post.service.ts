@@ -182,6 +182,7 @@ export class PostService {
   private toPost(p: PostWithRelations, viewerId: string, isAdmin: boolean, likedByMe: boolean): Post {
     return {
       id: p.id,
+      nsfw: p.nsfw,
       body: p.body,
       createdAt: p.createdAt.toISOString(),
       images: p.images.map((i) => ({ url: i.url })),

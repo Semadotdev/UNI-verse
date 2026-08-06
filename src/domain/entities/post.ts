@@ -45,15 +45,18 @@ export interface Post {
   likedByMe: boolean;
   canDelete: boolean;
   canEdit: boolean;
+  nsfw: boolean;
 }
 
 export interface CreatePostInput {
   body: string;
   folderId?: string | null;
   imageUrls?: string[];
+  nsfw?: boolean;
 }
 
 export interface UpdatePostInput {
   body?: string;
   folderId?: string | null;
+  nsfw?: boolean;
 }
