@@ -155,7 +155,7 @@ export function Combobox({
                 <button
                   type="button"
                   onClick={() => remove(value)}
-                  className="hover:text-white transition-colors"
+                  className="hover:text-zinc-100 transition-colors"
                 >
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { UNIverseLogo } from "@/components/UNIverseLogo";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { ProviderDropdown } from "@/components/navbar/ProviderDropdown";
+import { ThemeToggle, ThemePicker } from "@/components/navbar/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Modal } from "@/components/ui/Modal";
 import { ApiClient } from "@/lib/api-client";
@@ -210,6 +211,9 @@ export function Navbar() {
           ))}
         </div>
 
+        <div className="my-4 border-t border-zinc-800" />
+        <ThemePicker />
+
         {deferredPrompt && (
           <>
             <div className="my-4 border-t border-zinc-800" />
@@ -284,7 +288,7 @@ export function Navbar() {
           <>
             <button
               onClick={() => setConfirmLogout(false)}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Cancel
             </button>
@@ -308,9 +312,9 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-2.5 group">
           <UNIverseLogo size={32} />
           <span className="text-lg font-bold tracking-tight hidden lg:block">
-            <span className="text-white">UNI</span>
+            <span className="text-zinc-100">UNI</span>
             <span className="text-primary-light">-</span>
-            <span className="text-white">verse</span>
+            <span className="text-zinc-100">verse</span>
           </span>
         </Link>
 
@@ -355,6 +359,8 @@ export function Navbar() {
           <div className="w-px h-6 bg-border mx-1" />
 
           <ProviderDropdown />
+
+          <ThemeToggle />
 
           <NotificationBell variant="desktop" />
 

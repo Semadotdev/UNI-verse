@@ -16,9 +16,9 @@ export function UNIverseLogo({ size = 32, className = "", showText = false }: UN
       />
       {showText && (
         <span className="text-xl font-bold tracking-tight">
-          <span className="text-white">UNI</span>
+          <span className="text-zinc-100">UNI</span>
           <span className="text-[#A78BFA]">-</span>
-          <span className="text-white">verse</span>
+          <span className="text-zinc-100">verse</span>
         </span>
       )}
     </div>

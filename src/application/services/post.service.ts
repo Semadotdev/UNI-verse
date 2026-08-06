@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import type { Post, CreatePostInput, UpdatePostInput } from '@/domain/entities/post';
 import type { PaginatedResult } from '@/domain/types/api';
 import { UploadService } from '@/application/services/upload.service';
+import { NotificationService } from '@/application/services/notification.service';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('PostService');
@@ -29,6 +30,7 @@ type PostWithRelations = Prisma.PostGetPayload<{ include: typeof POST_INCLUDE }>
 
 export class PostService {
   private readonly uploadService = new UploadService();
+  private readonly notificationService = new NotificationService();
 
   async listFeed(
     userId: string,
@@ -158,13 +160,14 @@ export class PostService {
   }
 
   async like(postId: string, userId: string): Promise<void> {
-    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
     if (!post) throw new Error('Post not found');
     await prisma.like.upsert({
       where: { postId_userId: { postId, userId } },
       create: { postId, userId },
       update: {},
     });
+    await this.notificationService.onPostLiked(postId, userId);
   }
 
   async unlike(postId: string, userId: string): Promise<void> {

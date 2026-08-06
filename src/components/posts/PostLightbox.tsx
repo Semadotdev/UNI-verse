@@ -70,14 +70,14 @@ export function PostLightbox({ images, index, onClose }: PostLightboxProps) {
       }}
     >
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-sm text-zinc-400 tabular-nums">
+        <span className="text-sm text-white/60 tabular-nums">
           {current + 1} / {images.length}
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={zoomOut}
             disabled={scale <= MIN_SCALE}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-40"
+            className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
             aria-label="Zoom out"
           >
             <ZoomOut className="h-5 w-5" />
@@ -85,7 +85,7 @@ export function PostLightbox({ images, index, onClose }: PostLightboxProps) {
           <button
             onClick={zoomIn}
             disabled={scale >= MAX_SCALE}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-40"
+            className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
             aria-label="Zoom in"
           >
             <ZoomIn className="h-5 w-5" />
@@ -93,15 +93,15 @@ export function PostLightbox({ images, index, onClose }: PostLightboxProps) {
           <button
             onClick={resetZoom}
             disabled={scale === 1}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-40"
+            className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40"
             aria-label="Reset zoom"
           >
             <RotateCcw className="h-5 w-5" />
           </button>
-          <span className="mx-1 text-xs text-zinc-500 tabular-nums">{Math.round(scale * 100)}%</span>
+          <span className="mx-1 text-xs text-white/40 tabular-nums">{Math.round(scale * 100)}%</span>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+            className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -124,14 +124,14 @@ export function PostLightbox({ images, index, onClose }: PostLightboxProps) {
           <>
             <button
               onClick={() => setCurrent((c) => (c - 1 + images.length) % images.length)}
-              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-zinc-900/80 border border-zinc-700 p-2.5 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 border border-white/15 p-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Previous image"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
             <button
               onClick={() => setCurrent((c) => (c + 1) % images.length)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-zinc-900/80 border border-zinc-700 p-2.5 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 border border-white/15 p-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Next image"
             >
               <ChevronRight className="h-5 w-5" />

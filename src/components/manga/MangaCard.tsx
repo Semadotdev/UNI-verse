@@ -42,7 +42,7 @@ export function MangaCard({ manga, showChapterBadge = false, onRemove, onAdd, re
 
         {/* Chapter/Page count badge */}
         {showChapterBadge && (manga.pageCount || manga.latestChapter) && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded-md text-[11px] font-semibold text-zinc-200 border border-white/10">
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 backdrop-blur-sm rounded-md text-[11px] font-semibold text-white/80 border border-white/10">
             {manga.pageCount ? `Pgs. ${manga.pageCount}` : `Ch. ${manga.latestChapter}`}
           </div>
         )}
@@ -75,7 +75,7 @@ export function MangaCard({ manga, showChapterBadge = false, onRemove, onAdd, re
               e.stopPropagation();
               onRemove();
             }}
-            className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-black/70 backdrop-blur-sm text-zinc-300 hover:text-red-400 hover:bg-black/90 border border-white/10 transition-colors duration-150"
+            className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-black/70 backdrop-blur-sm text-white/80 hover:text-red-400 hover:bg-black/90 border border-white/10 transition-colors duration-150"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />

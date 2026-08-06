@@ -23,9 +23,9 @@ export function Footer() {
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="flex items-center gap-2">
             <span className="text-base font-bold tracking-tight">
-              <span className="text-white">UNI</span>
+              <span className="text-zinc-100">UNI</span>
               <span className="text-primary-light">-</span>
-              <span className="text-white">verse</span>
+              <span className="text-zinc-100">verse</span>
             </span>
           </div>
           <p className="text-xs text-muted">Grace Lights the Way to Every Story.</p>

@@ -15,6 +15,8 @@
   --color-accent-hover: #8B5CF6;
   --color-muted: #71717a;
   --color-muted-foreground: #3f3f46;
+  --color-surface: #1a1a24;
+  --color-surface-hover: #27272a;
   --color-status-ongoing: #34d399;
   --color-status-completed: #60a5fa;
   --color-status-cancelled: #f87171;
@@ -367,4 +369,91 @@ body {
 
 .light .skeleton-shimmer {
   background: linear-gradient(90deg, #f4f4f5 0%, #e4e4e7 50%, #f4f4f5 100%);
+}
+
+/* Semantic token overrides. Tailwind emits @theme vars in the theme layer;
+   un-layered .light rules always win, so utilities flip with the theme. */
+.light {
+  --color-bg: #ffffff;
+  --color-bg-raised: #f4f4f5;
+  --color-bg-overlay: #e4e4e7;
+  --color-border: #e4e4e7;
+  --color-border-hover: #d4d4d8;
+  --color-muted: #71717a;
+  --color-muted-foreground: #52525b;
+  --color-surface: #fafafa;
+  --color-surface-hover: #f4f4f5;
+  --color-primary-light: #6d28d9;
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+
+  --bg-deep: #ffffff;
+  --bg-raised: #f4f4f5;
+  --bg-overlay: #e4e4e7;
+  --border: #e4e4e7;
+  --border-hover: #d4d4d8;
+  --primary-light: #6d28d9;
+  --accent: #7c3aed;
+  --text-primary: #18181b;
+  --text-secondary: #3f3f46;
+  --text-muted: #71717a;
+  --gradient-primary: linear-gradient(135deg, #7c3aed, #a78bfa);
+  --gradient-hero: linear-gradient(135deg, #ffffff 0%, #f4f4f5 40%, #f3edff 100%);
+  --glow-purple: rgba(124, 58, 237, 0.12);
+
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(124, 58, 237, 0.15);
+  --shadow-glow: 0 0 24px rgba(124, 58, 237, 0.15);
+  --shadow-glow-lg: 0 0 48px rgba(124, 58, 237, 0.2);
+  --shadow-glow-sm: 0 0 12px rgba(124, 58, 237, 0.12);
+  --shadow-moon: 0 0 30px rgba(124, 58, 237, 0.08);
+}
+
+/* Remap the zinc palette so hardcoded dark-mode zinc utilities invert on light */
+.light {
+  --color-zinc-50: #09090b;
+  --color-zinc-100: #18181b;
+  --color-zinc-200: #27272a;
+  --color-zinc-300: #3f3f46;
+  --color-zinc-400: #52525b;
+  --color-zinc-500: #71717a;
+  --color-zinc-600: #a1a1aa;
+  --color-zinc-700: #d4d4d8;
+  --color-zinc-800: #e4e4e7;
+  --color-zinc-900: #fafafa;
+  --color-zinc-950: #f4f4f5;
+}
+
+/* Prose */
+.light .prose-dark {
+  color: #3f3f46;
+}
+
+.light .prose-dark h2 {
+  color: #18181b;
+}
+
+.light .prose-dark h3 {
+  color: #27272a;
+}
+
+.light .prose-dark a {
+  color: #7c3aed;
+}
+
+.light .prose-dark a:hover {
+  color: #6d28d9;
+}
+
+.light .prose-dark strong {
+  color: #27272a;
+}
+
+.light .prose-dark hr {
+  border-top-color: #e4e4e7;
+}
+
+/* Slider */
+.light .slider::-moz-range-track {
+  background: #e4e4e7;
 }

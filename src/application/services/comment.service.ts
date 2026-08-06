@@ -1,6 +1,7 @@
 import { prisma } from '@/infrastructure/database/prisma-client';
 import type { Comment } from '@/domain/entities/comment';
 import type { PaginatedResult } from '@/domain/types/api';
+import { NotificationService } from '@/application/services/notification.service';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('CommentService');
@@ -8,6 +9,8 @@ const logger = createLogger('CommentService');
 const DEFAULT_PAGE_SIZE = 20;
 
 export class CommentService {
+  private readonly notificationService = new NotificationService();
+
   async list(postId: string, viewerId: string, page = 1, limit = DEFAULT_PAGE_SIZE): Promise<PaginatedResult<Comment>> {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
     const skip = (page - 1) * safeLimit;
@@ -42,13 +45,15 @@ export class CommentService {
     if (!text) throw new Error('Comment is empty');
     if (text.length > 1000) throw new Error('Comment too long');
 
-    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true } });
+    const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
     if (!post) throw new Error('Post not found');
 
     const comment = await prisma.comment.create({
       data: { postId, authorId, body: text },
       include: { author: { select: { username: true, name: true, avatarUrl: true } } },
     });
+
+    await this.notificationService.onPostCommented(postId, authorId, comment.id);
 
     logger.info(`Comment created on post ${postId}`);
     return {

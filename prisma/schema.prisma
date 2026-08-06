@@ -31,6 +31,8 @@ model User {
   commentReports CommentReport[]
   friends        Friend[] @relation("Friendships")
   friendOf       Friend[] @relation("FriendOf")
+  notifications  Notification[] @relation("NotificationsReceived")
+  sentActivity   Notification[] @relation("NotificationsSent")
 }
 
 model Friend {
@@ -224,6 +226,7 @@ model Post {
   likes     Like[]
   comments  Comment[]
   reports   PostReport[]
+  notifications Notification[]
 
   @@index([authorId, createdAt])
 }
@@ -260,9 +263,10 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  reports   CommentReport[]
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports    CommentReport[]
+  notifications Notification[]
 
   @@index([postId, createdAt])
 }
@@ -293,4 +297,23 @@ model CommentReport {
 
   @@unique([commentId, reporterId])
   @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  actorId   String
+  postId    String?
+  commentId String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User     @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([actorId])
 }

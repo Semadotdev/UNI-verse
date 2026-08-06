@@ -39,14 +39,14 @@ function Pagination({
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           ← Prev
         </button>
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={!hasMore}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           Next →
         </button>
@@ -83,7 +83,7 @@ function Pagination({
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           ← Prev
         </button>
@@ -106,7 +106,7 @@ function Pagination({
               className={`px-3 py-2 text-sm rounded-lg border transition-all ${
                 p === page
                   ? "bg-primary border-primary text-white shadow-glow"
-                  : "border-border bg-bg-raised text-zinc-400 hover:border-primary/50 hover:text-white"
+                  : "border-border bg-bg-raised text-zinc-400 hover:border-primary/50 hover:text-zinc-100"
               }`}
             >
               {p}
@@ -116,7 +116,7 @@ function Pagination({
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={!hasMore && page >= totalPages}
-          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          className="px-3 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           Next →
         </button>
@@ -131,7 +131,7 @@ function Pagination({
           <>
             <button
               onClick={() => setJumpOpen(false)}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Cancel
             </button>

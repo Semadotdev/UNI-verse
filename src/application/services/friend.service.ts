@@ -1,9 +1,13 @@
 import { prisma } from '@/infrastructure/database/prisma-client';
+import { NotificationService } from '@/application/services/notification.service';
+import type { FriendSummary } from '@/domain/entities/friend';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('FriendService');
 
 export class FriendService {
+  private readonly notificationService = new NotificationService();
+
   async addFriend(userId: string, username: string): Promise<{ username: string }> {
     const friend = await prisma.user.findUnique({ where: { username }, select: { id: true, username: true } });
     if (!friend) throw new Error('User not found');
@@ -22,6 +26,7 @@ export class FriendService {
       }),
     ]);
 
+    await this.notificationService.onFriendAdded(userId, friend.id);
     logger.info(`User ${userId} added ${friend.id} as friend`);
     return { username: friend.username ?? username };
   }
@@ -49,5 +54,20 @@ export class FriendService {
 
   async friendCount(userId: string): Promise<number> {
     return prisma.friend.count({ where: { userId } });
+  }
+
+  async listFriends(userId: string, limit = 100): Promise<FriendSummary[]> {
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
+    const rows = await prisma.friend.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: safeLimit,
+      select: {
+        friend: {
+          select: { username: true, name: true, avatarUrl: true },
+        },
+      },
+    });
+    return rows.map((r) => r.friend);
   }
 }

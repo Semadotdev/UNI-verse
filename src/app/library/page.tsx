@@ -231,7 +231,7 @@ export default function LibraryPage() {
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-3 py-1.5 text-sm rounded-lg border border-dashed border-zinc-600 hover:border-zinc-400 text-muted hover:text-white transition-colors whitespace-nowrap"
+          className="px-3 py-1.5 text-sm rounded-lg border border-dashed border-zinc-600 hover:border-zinc-400 text-muted hover:text-zinc-100 transition-colors whitespace-nowrap"
         >
           + New Folder
         </button>
@@ -333,7 +333,7 @@ export default function LibraryPage() {
           <>
             <button
               onClick={() => { setShowCreateModal(false); setNewFolderName(""); }}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Cancel
             </button>
@@ -355,7 +355,7 @@ export default function LibraryPage() {
             if (e.key === "Escape") { setShowCreateModal(false); setNewFolderName(""); }
           }}
           placeholder="Folder name"
-          className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-primary transition-colors"
+          className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 outline-none focus:border-primary transition-colors"
         />
       </Modal>
 
@@ -369,7 +369,7 @@ export default function LibraryPage() {
           <>
             <button
               onClick={() => { setRenameTarget(null); setRenameName(""); }}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Cancel
             </button>
@@ -391,7 +391,7 @@ export default function LibraryPage() {
             if (e.key === "Escape") { setRenameTarget(null); setRenameName(""); }
           }}
           placeholder="Folder name"
-          className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-primary transition-colors"
+          className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 outline-none focus:border-primary transition-colors"
         />
       </Modal>
 
@@ -405,7 +405,7 @@ export default function LibraryPage() {
           <>
             <button
               onClick={() => setConfirmRemove(null)}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Cancel
             </button>
@@ -434,7 +434,7 @@ export default function LibraryPage() {
           <>
             <button
               onClick={() => setConfirmDeleteFolder(null)}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Cancel
             </button>
@@ -473,7 +473,7 @@ export default function LibraryPage() {
                 readOnly
                 value={`${window.location.origin}${shareData.url}`}
                 onFocus={(e) => e.currentTarget.select()}
-                className="flex-1 min-w-0 px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-white outline-none focus:border-primary transition-colors"
+                className="flex-1 min-w-0 px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 outline-none focus:border-primary transition-colors"
               />
               <button
                 onClick={copyShareLink}

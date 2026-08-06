@@ -144,7 +144,7 @@ export function FolderPreviewModal({ postId, folder, onClose }: FolderPreviewMod
         <>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+            className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
           >
             Close
           </button>

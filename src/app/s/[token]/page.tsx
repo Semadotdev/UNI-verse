@@ -163,7 +163,7 @@ export default function SharedFolderPage({ params }: { params: Promise<{ token: 
           ) : (
             <button
               onClick={handleAddFolder}
-              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+              className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
             >
               Log in to add to your library
             </button>

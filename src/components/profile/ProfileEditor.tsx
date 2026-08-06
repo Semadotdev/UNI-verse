@@ -90,7 +90,7 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
         <>
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-white transition-all"
+            className="px-4 py-2 text-sm rounded-lg border border-border bg-bg-raised text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
           >
             Cancel
           </button>
@@ -115,7 +115,7 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
           <div className="w-20 h-20 rounded-full bg-primary/30 shrink-0" />
         )}
 
-        <label className="cursor-pointer px-4 py-2 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-white transition-all">
+        <label className="cursor-pointer px-4 py-2 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all">
           Change photo
           <input
             type="file"

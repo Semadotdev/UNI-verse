@@ -381,7 +381,7 @@ export default function MangaDetailPage() {
                             loading="lazy"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                          <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] font-semibold text-zinc-200 border border-white/10">
+                          <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] font-semibold text-white/80 border border-white/10">
                             {i + 1}
                           </div>
                         </Link>
