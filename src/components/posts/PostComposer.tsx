@@ -222,15 +222,17 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2">
           <Toggle
             checked={effectiveNsfw}
             disabled={forceNsfw}
             onChange={setNsfw}
-            label={forceNsfw ? "This folder contains NSFW content" : "Mark as NSFW"}
           />
           {effectiveNsfw && <NsfwBadge />}
-        </div>
+          <span className="text-xs text-muted">
+            {forceNsfw ? "This folder contains NSFW content" : "Mark as NSFW"}
+          </span>
+        </label>
       </div>
     </Modal>
   );
