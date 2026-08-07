@@ -13,6 +13,7 @@ import { FolderPreviewModal } from "@/components/posts/FolderPreviewModal";
 import { CommentSection } from "@/components/posts/CommentSection";
 import { ReportModal } from "@/components/posts/ReportModal";
 import { ConfirmModal } from "@/components/posts/ConfirmModal";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import type { Post } from "@/domain/entities/post";
 
 interface Viewer {
@@ -123,6 +124,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted
         {hideAuthor && (
           <p className="flex-1 text-xs text-muted">{timeAgo(post.createdAt)}</p>
         )}
+        {post.nsfw && <NsfwBadge className="shrink-0" />}
         {menuItems.length > 0 && <PostMenu items={menuItems} />}
       </div>
 

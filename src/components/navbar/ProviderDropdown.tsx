@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dropdown, type DropdownItem } from "@/components/ui/Dropdown";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import { useProvider } from "@/contexts/ProviderContext";
 
 interface ProviderInfo {
@@ -10,12 +11,6 @@ interface ProviderInfo {
   name: string;
   nsfw: boolean;
 }
-
-const NsfwBadge = () => (
-  <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded-full leading-none">
-    18+
-  </span>
-);
 
 export function ProviderDropdown() {
   const { selectedProvider, setSelectedProvider } = useProvider();
