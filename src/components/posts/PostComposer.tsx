@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { Toggle } from "@/components/ui/Toggle";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import { ApiClient } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 import type { Post } from "@/domain/entities/post";
@@ -10,6 +12,7 @@ interface FolderOption {
   id: string;
   name: string;
   count: number;
+  nsfw: boolean;
 }
 
 interface Viewer {
@@ -34,8 +37,13 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [nsfw, setNsfw] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
+
+  const selectedFolder = folders.find((f) => f.id === folderId);
+  const forceNsfw = selectedFolder?.nsfw === true;
+  const effectiveNsfw = nsfw || forceNsfw;
 
   const publish = async () => {
     if (saving) return;
@@ -50,7 +58,7 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
         const updated = await ApiClient.put<Post>(`/api/posts/${editing.id}`, { body: text, folderId });
         onSaved(updated);
       } else {
-        const created = await ApiClient.post<Post>("/api/posts", { body: text, folderId, imageUrls: images });
+        const created = await ApiClient.post<Post>("/api/posts", { body: text, folderId, imageUrls: images, nsfw: effectiveNsfw });
         onSaved(created);
       }
       addToast(editing ? "Post updated" : "Post published", "success");
@@ -67,6 +75,7 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
     setBody("");
     setFolderId(null);
     setImages([]);
+    setNsfw(false);
   };
 
   const pickImages = async (files: FileList | null) => {
@@ -211,6 +220,18 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
               </button>
             </>
           )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Toggle
+            checked={effectiveNsfw}
+            disabled={forceNsfw}
+            onChange={setNsfw}
+          />
+          <NsfwBadge />
+          <span className="text-xs text-muted">
+            {forceNsfw ? "This folder contains NSFW content" : "Mark as NSFW"}
+          </span>
         </div>
       </div>
     </Modal>
