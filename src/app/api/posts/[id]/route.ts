@@ -38,6 +38,7 @@ export async function PATCH(
     const post = await postService.update(id, userId, {
       body: typeof body.body === 'string' ? body.body : undefined,
       folderId: body.folderId === undefined ? undefined : typeof body.folderId === 'string' ? body.folderId : null,
+      nsfw: typeof body.nsfw === 'boolean' ? body.nsfw : undefined,
     });
 
     return NextResponse.json(successResponse(post));
