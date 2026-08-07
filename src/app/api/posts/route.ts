@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PostService } from '@/application/services/post.service';
+import type { PostFeed } from '@/application/services/post-feed-where';
 import { getAuthUserId } from '@/lib/auth';
 import { ForbiddenError } from '@/shared/errors/forbidden-error';
 import { successResponse, errorResponse } from '@/domain/types/api';
@@ -13,8 +14,10 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const username = searchParams.get('username') || undefined;
+    const filter = searchParams.get('filter') || undefined;
+    const feed: PostFeed | undefined = filter === 'friends' || filter === 'nsfw' ? filter : undefined;
 
-    const result = await postService.listFeed(userId, page, limit, { username });
+    const result = await postService.listFeed(userId, page, limit, { username, feed });
     return NextResponse.json(successResponse(result.data, {
       page: result.page,
       totalPages: result.totalPages,
@@ -40,6 +43,7 @@ export async function POST(request: NextRequest) {
       imageUrls: Array.isArray(body.imageUrls)
         ? body.imageUrls.filter((u: unknown): u is string => typeof u === 'string')
         : [],
+      nsfw: typeof body.nsfw === 'boolean' ? body.nsfw : false,
     });
 
     return NextResponse.json(successResponse(post), { status: 201 });
