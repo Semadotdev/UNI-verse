@@ -186,7 +186,7 @@ function LoginForm() {
             Unfortunately, this process resulted in the deletion of all data and accounts.{" "}
             We sincerely apologize for the inconvenience.
           </p>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-4">
             <button
               type="button"
               onClick={() => router.push("/register")}
