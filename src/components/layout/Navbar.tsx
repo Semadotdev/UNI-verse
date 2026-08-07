@@ -10,6 +10,7 @@ import { ProviderDropdown } from "@/components/navbar/ProviderDropdown";
 import { ThemeToggle, ThemePicker } from "@/components/navbar/ThemeToggle";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Modal } from "@/components/ui/Modal";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import { ApiClient } from "@/lib/api-client";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useToast } from "@/contexts/ToastContext";
@@ -28,12 +29,6 @@ const navItems = [
   { href: "/library", label: "Library", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>) },
   { href: "/history", label: "History", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>) },
 ];
-
-const NsfwBadge = () => (
-  <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 rounded-full leading-none">
-    18+
-  </span>
-);
 
 export function Navbar() {
   const pathname = usePathname();
