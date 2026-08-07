@@ -58,7 +58,7 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
         const updated = await ApiClient.put<Post>(`/api/posts/${editing.id}`, { body: text, folderId });
         onSaved(updated);
       } else {
-        const created = await ApiClient.post<Post>("/api/posts", { body: text, folderId, imageUrls: images, nsfw: effectiveNsfw });
+        const created = await ApiClient.post<Post>("/api/posts", { body: text, folderId, imageUrls: images, nsfw });
         onSaved(created);
       }
       addToast(editing ? "Post updated" : "Post published", "success");
@@ -227,11 +227,9 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
             checked={effectiveNsfw}
             disabled={forceNsfw}
             onChange={setNsfw}
+            label={forceNsfw ? "This folder contains NSFW content" : "Mark as NSFW"}
           />
-          <NsfwBadge />
-          <span className="text-xs text-muted">
-            {forceNsfw ? "This folder contains NSFW content" : "Mark as NSFW"}
-          </span>
+          {effectiveNsfw && <NsfwBadge />}
         </div>
       </div>
     </Modal>
