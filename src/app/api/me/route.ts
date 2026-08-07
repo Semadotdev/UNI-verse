@@ -5,6 +5,7 @@ import { prisma } from '@/infrastructure/database/prisma-client';
 import { successResponse, errorResponse } from '@/domain/types/api';
 
 const MAX_BIO_LENGTH = 200;
+const MAX_NAME_LENGTH = 50;
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
 
 function validationError(message: string) {
@@ -58,7 +59,7 @@ export async function PUT(request: NextRequest) {
     const userId = await getAuthUserId();
     const body = await request.json().catch(() => ({}));
 
-    const data: { bio?: string | null; avatarUrl?: string | null; username?: string } = {};
+    const data: { bio?: string | null; avatarUrl?: string | null; username?: string; name?: string | null } = {};
 
     if (body.username !== undefined) {
       const username = typeof body.username === 'string' ? body.username.trim() : '';
@@ -73,6 +74,14 @@ export async function PUT(request: NextRequest) {
         return validationError('Username already taken');
       }
       data.username = username;
+    }
+
+    if (body.name !== undefined) {
+      const name = typeof body.name === 'string' ? body.name.trim() : '';
+      if (name.length > MAX_NAME_LENGTH) {
+        return validationError(`Name must be ${MAX_NAME_LENGTH} characters or fewer`);
+      }
+      data.name = name || null;
     }
 
     if (body.bio !== undefined) {

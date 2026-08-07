@@ -7,12 +7,14 @@ import { Modal } from "@/components/ui/Modal";
 import type { ProfileData } from "@/components/profile/types";
 
 const MAX_BIO_LENGTH = 200;
+const MAX_NAME_LENGTH = 50;
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const AVATAR_TYPES = /^image\/(jpeg|png|gif|webp)$/;
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]+$/;
 
 export interface ProfileUpdate {
   username: string | null;
+  name: string | null;
   bio: string | null;
   avatarUrl: string | null;
 }
@@ -25,6 +27,7 @@ interface ProfileEditorProps {
 
 export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps) {
   const { addToast } = useToast();
+  const [name, setName] = useState(profile.name ?? "");
   const [username, setUsername] = useState(profile.username ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -47,6 +50,11 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
 
   const save = async () => {
     if (saving) return;
+    const cleanName = name.trim();
+    if (cleanName.length > MAX_NAME_LENGTH) {
+      addToast(`Name must be ${MAX_NAME_LENGTH} characters or fewer`, "error");
+      return;
+    }
     const cleanUsername = username.trim();
     if (cleanUsername.length < 3 || cleanUsername.length > 20) {
       addToast("Username must be 3-20 characters", "error");
@@ -64,6 +72,7 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
         avatarUrl = res.url;
       }
       const updated = await ApiClient.put<ProfileUpdate>("/api/me", {
+        name: cleanName || null,
         username: cleanUsername,
         bio,
         avatarUrl,
@@ -124,6 +133,22 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
             onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
           />
         </label>
+      </div>
+
+      <div className="mt-4">
+        <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-1.5">
+          Name
+        </label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))}
+          placeholder="Your display name"
+          className="w-full rounded-lg border border-border bg-bg-overlay px-3 py-2 text-sm text-zinc-200 placeholder:text-muted focus:outline-none focus:border-primary/50"
+        />
+        <p className="mt-1 text-right text-xs text-muted">
+          {name.length}/{MAX_NAME_LENGTH}
+        </p>
       </div>
 
       <div className="mt-4">
