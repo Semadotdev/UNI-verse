@@ -1,17 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiClient } from "@/lib/api-client";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { PostComposer } from "@/components/posts/PostComposer";
 import { PostCard } from "@/components/posts/PostCard";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import type { Post } from "@/domain/entities/post";
+import type { PostFeed } from "@/application/services/post-feed-where";
 
 interface Viewer {
   avatarUrl: string | null;
   username: string | null;
   name: string | null;
+  isAdult: boolean;
 }
 
 export default function PostsPage() {
@@ -23,13 +27,27 @@ export default function PostsPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
   const [viewer, setViewer] = useState<Viewer | null>(null);
+  const [feed, setFeed] = useState<PostFeed>("all");
   const { folders, refreshFolders } = useLibrary();
 
-  const load = useCallback(async (p: number) => {
-    const res = await ApiClient.getWithMeta<Post[]>(`/api/posts?page=${p}&limit=10`);
-    setPosts((prev) => (p === 1 ? res.data : [...prev, ...res.data]));
-    setHasMore(Boolean(res.meta?.hasMore));
-    setPage(p);
+  const feedRef = useRef(feed);
+
+  useEffect(() => {
+    feedRef.current = feed;
+  }, [feed]);
+
+  const load = useCallback(async (p: number, f: PostFeed) => {
+    if (p === 1) setLoading(true);
+    try {
+      const qs = f === "all" ? "" : `&filter=${f}`;
+      const res = await ApiClient.getWithMeta<Post[]>(`/api/posts?page=${p}&limit=10${qs}`);
+      if (f !== feedRef.current) return;
+      setPosts((prev) => (p === 1 ? res.data : [...prev, ...res.data]));
+      setHasMore(Boolean(res.meta?.hasMore));
+      setPage(p);
+    } finally {
+      if (f === feedRef.current) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -40,8 +58,8 @@ export default function PostsPage() {
   }, [refreshFolders]);
 
   useEffect(() => {
-    load(1).catch(() => {}).finally(() => setLoading(false));
-  }, [load]);
+    load(1, feed).catch(() => {});
+  }, [load, feed]);
 
   const handleSaved = (post: Post) => {
     setPosts((prev) => {
@@ -60,7 +78,7 @@ export default function PostsPage() {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
-      await load(page + 1);
+      await load(page + 1, feed);
     } catch {
       // ignore
     } finally {
@@ -93,6 +111,19 @@ export default function PostsPage() {
           Create post
         </button>
       </div>
+
+      <SegmentedControl
+        className="mb-5"
+        value={feed}
+        onChange={(v) => setFeed(v as PostFeed)}
+        options={[
+          { value: "all", label: "All" },
+          { value: "friends", label: "Friends" },
+          ...(viewer?.isAdult
+            ? [{ value: "nsfw", label: <span className="flex items-center gap-1.5">NSFW <NsfwBadge /></span> }]
+            : []),
+        ]}
+      />
 
       {loading ? (
         <div className="space-y-4">
@@ -131,6 +162,7 @@ export default function PostsPage() {
       )}
 
       <PostComposer
+        key={editing?.id ?? "create"}
         open={composerOpen}
         onClose={() => {
           setComposerOpen(false);

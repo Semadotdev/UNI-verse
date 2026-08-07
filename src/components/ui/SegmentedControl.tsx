@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 interface SegmentedControlProps {
-  options: { value: string; label: string }[];
+  options: { value: string; label: ReactNode }[];
   value: string;
   onChange: (value: string) => void;
   className?: string;
