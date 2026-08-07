@@ -33,6 +33,8 @@ export default function PostsPage() {
   const { folders, refreshFolders } = useLibrary();
 
   const feedRef = useRef(feed);
+  const meRequestIdRef = useRef(0);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     feedRef.current = feed;
@@ -53,15 +55,26 @@ export default function PostsPage() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
+    const requestId = ++meRequestIdRef.current;
+
     refreshFolders().catch(() => {});
-    ApiClient.get<Viewer>("/api/me")
+    ApiClient.get<Viewer>("/api/me", { cache: "no-store" })
       .then((me) => {
+        if (!mountedRef.current || requestId !== meRequestIdRef.current) return;
         setViewer(me);
         setShowNsfw(me.showNsfw);
         return me;
       })
-      .then((me) => load(1, feed).catch(() => {}))
+      .then(() => {
+        if (!mountedRef.current || requestId !== meRequestIdRef.current) return;
+        return load(1, feed).catch(() => {});
+      })
       .catch(() => {});
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [refreshFolders, load, feed]);
 
   const handleSaved = (post: Post) => {

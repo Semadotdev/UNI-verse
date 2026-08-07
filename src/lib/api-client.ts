@@ -45,12 +45,12 @@ export class ApiClient {
     return { data: data.data as T, meta: data.meta };
   }
 
-  static async get<T>(url: string): Promise<T> {
-    return this.request<T>(url);
+  static async get<T>(url: string, options?: RequestInit): Promise<T> {
+    return this.request<T>(url, options);
   }
 
-  static async getWithMeta<T>(url: string): Promise<{ data: T; meta?: PaginationMeta }> {
-    return this.requestWithMeta<T>(url);
+  static async getWithMeta<T>(url: string, options?: RequestInit): Promise<{ data: T; meta?: PaginationMeta }> {
+    return this.requestWithMeta<T>(url, options);
   }
 
   static async post<T>(url: string, body?: unknown): Promise<T> {
