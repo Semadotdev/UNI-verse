@@ -1,5 +1,6 @@
 import { prisma } from '@/infrastructure/database/prisma-client';
 import { createLogger } from '@/shared/utils/logger';
+import { isNsfwCategories } from '@/domain/constants/nsfw-genres';
 
 const logger = createLogger('LibraryService');
 
@@ -109,7 +110,10 @@ export class LibraryService {
   async getFolders(userId: string) {
     const folders = await prisma.folder.findMany({
       where: { userId },
-      include: { _count: { select: { items: true } } },
+      include: {
+        _count: { select: { items: true } },
+        items: { select: { categories: true } },
+      },
       orderBy: { name: 'asc' },
     });
     return folders.map((f) => ({
@@ -118,6 +122,7 @@ export class LibraryService {
       count: f._count.items,
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
+      nsfw: f.items.some((item) => isNsfwCategories(item.categories)),
     }));
   }
 

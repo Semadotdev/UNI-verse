@@ -26,6 +26,7 @@ interface Folder {
   count: number;
   createdAt: string;
   updatedAt: string;
+  nsfw: boolean;
 }
 
 export interface BatchAddItem {
