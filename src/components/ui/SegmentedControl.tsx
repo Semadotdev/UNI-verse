@@ -14,6 +14,8 @@ export function SegmentedControl({ options, value, onChange, className }: Segmen
       {options.map((option) => (
         <button
           key={option.value}
+          type="button"
+          aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
             "flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
