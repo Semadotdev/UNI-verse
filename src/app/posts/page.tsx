@@ -120,7 +120,7 @@ export default function PostsPage() {
           { value: "all", label: "All" },
           { value: "friends", label: "Friends" },
           ...(viewer?.isAdult
-            ? [{ value: "nsfw", label: <span className="flex items-center gap-1.5">NSFW <NsfwBadge /></span> }]
+            ? [{ value: "nsfw", label: <span className="flex items-center justify-center gap-1.5 w-full">NSFW <NsfwBadge className="leading-normal" /></span> }]
             : []),
         ]}
       />

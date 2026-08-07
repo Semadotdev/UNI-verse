@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -15,6 +15,28 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNotice, setShowNotice] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const key = "data-wipe-notice-first-seen";
+    const stored = localStorage.getItem(key);
+
+    if (stored === null) {
+      localStorage.setItem(key, Date.now().toString());
+      setShowNotice(true);
+    } else {
+      const firstSeen = parseInt(stored, 10);
+      if (Date.now() - firstSeen < 172800000) {
+        setShowNotice(true);
+      }
+    }
+  }, []);
+
+  const dismissNotice = () => {
+    setShowNotice(false);
+    setTimeout(() => emailRef.current?.focus(), 100);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +88,8 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4">
+    <>
+      <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
@@ -87,15 +110,16 @@ function LoginForm() {
             <label htmlFor="email" className="block text-sm font-medium text-zinc-300 mb-1.5">
               Email or Username
             </label>
-            <input
-              id="email"
-              type="text"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 bg-bg-overlay border border-border rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
-              placeholder="you@example.com or username"
-            />
+              <input
+                id="email"
+                type="text"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                ref={emailRef}
+                className="w-full px-4 py-2.5 bg-bg-overlay border border-border rounded-xl text-sm focus:outline-none focus:border-primary/50 transition-colors"
+                placeholder="you@example.com or username"
+              />
           </div>
 
           <div>
@@ -151,6 +175,37 @@ function LoginForm() {
         </p>
       </div>
     </div>
+
+    {showNotice && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+        <div className="relative max-w-md w-full rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-center">
+          <h2 className="text-xl font-bold text-zinc-100 mb-3">Important Notice</h2>
+          <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
+            Due to a major refactor, our development team had to revise the entire database.{" "}
+            Unfortunately, this process resulted in the deletion of all data and accounts.{" "}
+            We sincerely apologize for the inconvenience.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <button
+              type="button"
+              onClick={() => router.push("/register")}
+              className="w-full px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-glow hover:shadow-glow-lg"
+            >
+              Create New Account
+            </button>
+            <button
+              type="button"
+              onClick={dismissNotice}
+              className="w-full px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-sm font-semibold transition-all duration-200"
+            >
+              I already have an account
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
 
