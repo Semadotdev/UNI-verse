@@ -6,6 +6,7 @@ const base = {
   authorId: undefined,
   feed: undefined as "all" | "friends" | "nsfw" | undefined,
   viewerIsAdult: true,
+  viewerShowNsfw: true,
   friendIds: [],
 };
 
@@ -16,7 +17,12 @@ describe("buildFeedWhere", () => {
   });
 
   it("hides nsfw for minors on the default feed", () => {
-    const where = buildFeedWhere({ ...base, viewerIsAdult: false });
+    const where = buildFeedWhere({ ...base, viewerIsAdult: false, viewerShowNsfw: true });
+    expect(where.nsfw).toBe(false);
+  });
+
+  it("hides nsfw for adults who opted out on the default feed", () => {
+    const where = buildFeedWhere({ ...base, viewerIsAdult: true, viewerShowNsfw: false });
     expect(where.nsfw).toBe(false);
   });
 
@@ -31,7 +37,7 @@ describe("buildFeedWhere", () => {
   });
 
   it("hides nsfw for minors on the friends feed", () => {
-    const where = buildFeedWhere({ ...base, feed: "friends", friendIds: ["u2"], viewerIsAdult: false });
+    const where = buildFeedWhere({ ...base, feed: "friends", friendIds: ["u2"], viewerIsAdult: false, viewerShowNsfw: true });
     expect(where.nsfw).toBe(false);
     expect(where.authorId).toEqual({ in: ["u2"] });
   });
@@ -42,7 +48,7 @@ describe("buildFeedWhere", () => {
   });
 
   it("forces an empty result for minors on the nsfw feed", () => {
-    const where = buildFeedWhere({ ...base, feed: "nsfw", viewerIsAdult: false });
+    const where = buildFeedWhere({ ...base, feed: "nsfw", viewerIsAdult: false, viewerShowNsfw: true });
     expect(where.nsfw).toBe(true);
     expect(where.id).toEqual({ in: [] });
   });

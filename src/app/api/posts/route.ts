@@ -25,6 +25,12 @@ export async function GET(request: NextRequest) {
       hasMore: result.hasMore,
     }));
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        errorResponse('UNAUTHORIZED', 'Unauthorized'),
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       errorResponse('POSTS_ERROR', error instanceof Error ? error.message : 'Failed to load posts'),
       { status: 500 }

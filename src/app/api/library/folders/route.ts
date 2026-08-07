@@ -11,6 +11,12 @@ export async function GET() {
     const folders = await libraryService.getFolders(userId);
     return NextResponse.json(successResponse(folders));
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        errorResponse('UNAUTHORIZED', 'Unauthorized'),
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       errorResponse('LIBRARY_ERROR', error instanceof Error ? error.message : 'Failed to get folders'),
       { status: 500 }

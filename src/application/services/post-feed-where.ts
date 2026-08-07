@@ -7,6 +7,7 @@ export interface BuildFeedWhereInput {
   authorId?: string;
   feed?: PostFeed;
   viewerIsAdult: boolean;
+  viewerShowNsfw: boolean;
   friendIds: string[];
 }
 
@@ -21,12 +22,14 @@ export function buildFeedWhere(input: BuildFeedWhereInput): Prisma.PostWhereInpu
     where.authorId = { in: input.friendIds };
   }
 
+  const viewerCanSeeNsfw = input.viewerIsAdult && input.viewerShowNsfw;
+
   if (input.feed === "nsfw") {
     where.nsfw = true;
-    if (!input.viewerIsAdult) {
+    if (!viewerCanSeeNsfw) {
       where.id = { in: [] };
     }
-  } else if (!input.viewerIsAdult) {
+  } else if (!viewerCanSeeNsfw) {
     where.nsfw = false;
   }
 

@@ -16,6 +16,7 @@ interface Viewer {
   username: string | null;
   name: string | null;
   isAdult: boolean;
+  showNsfw: boolean;
 }
 
 export default function PostsPage() {
@@ -28,6 +29,7 @@ export default function PostsPage() {
   const [editing, setEditing] = useState<Post | null>(null);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [feed, setFeed] = useState<PostFeed>("all");
+  const [showNsfw, setShowNsfw] = useState(true);
   const { folders, refreshFolders } = useLibrary();
 
   const feedRef = useRef(feed);
@@ -53,13 +55,14 @@ export default function PostsPage() {
   useEffect(() => {
     refreshFolders().catch(() => {});
     ApiClient.get<Viewer>("/api/me")
-      .then((me) => setViewer(me))
+      .then((me) => {
+        setViewer(me);
+        setShowNsfw(me.showNsfw);
+        return me;
+      })
+      .then((me) => load(1, feed).catch(() => {}))
       .catch(() => {});
-  }, [refreshFolders]);
-
-  useEffect(() => {
-    load(1, feed).catch(() => {});
-  }, [load, feed]);
+  }, [refreshFolders, load, feed]);
 
   const handleSaved = (post: Post) => {
     setPosts((prev) => {
@@ -96,6 +99,29 @@ export default function PostsPage() {
     setComposerOpen(true);
   };
 
+  const handleToggleNsfw = async () => {
+    const newValue = !showNsfw;
+    const targetFeed = newValue ? feed : feed === "nsfw" ? "all" : feed;
+
+    if (targetFeed !== feed) {
+      setFeed(targetFeed);
+      feedRef.current = targetFeed;
+    }
+
+    setShowNsfw(newValue);
+
+    try {
+      await ApiClient.put("/api/me", { showNsfw: newValue });
+      load(1, targetFeed).catch(() => {});
+    } catch {
+      setShowNsfw(!newValue);
+      if (targetFeed !== feed) {
+        setFeed(feed);
+        feedRef.current = feed;
+      }
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto w-full px-4 py-6 pb-24 md:pb-10">
       <div className="flex items-center justify-between mb-5">
@@ -119,11 +145,32 @@ export default function PostsPage() {
         options={[
           { value: "all", label: "All" },
           { value: "friends", label: "Friends" },
-          ...(viewer?.isAdult
+          ...(viewer?.isAdult && showNsfw
             ? [{ value: "nsfw", label: <span className="flex items-center justify-center gap-1.5 w-full">NSFW <NsfwBadge className="leading-normal" /></span> }]
             : []),
         ]}
       />
+
+      {viewer?.isAdult && (
+        <div className="flex items-center justify-end gap-2 mb-5">
+          <span className="text-xs text-muted">Show NSFW</span>
+          <button
+            type="button"
+            onClick={handleToggleNsfw}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              showNsfw ? "bg-primary" : "bg-zinc-700"
+            }`}
+            role="switch"
+            aria-checked={showNsfw}
+          >
+            <span
+              className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                showNsfw ? "translate-x-4.5" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-4">

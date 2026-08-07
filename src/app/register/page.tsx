@@ -6,6 +6,8 @@ import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { UNIverseLogo } from "@/components/UNIverseLogo";
 import { useToast } from "@/contexts/ToastContext";
+import { isAdult } from "@/lib/age";
+import { ApiClient } from "@/lib/api-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -19,6 +21,8 @@ export default function RegisterPage() {
   const [birthDate, setBirthDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNsfwModal, setShowNsfwModal] = useState(false);
+  const [pendingNsfw, setPendingNsfw] = useState<boolean | null>(null);
 
   const passwordChecks = {
     minLength: password.length >= 8,
@@ -89,13 +93,32 @@ export default function RegisterPage() {
         return;
       }
 
-      addToast("Account created successfully!", "success");
-      router.push("/");
-      router.refresh();
+      const isUserAdult = isAdult(new Date(birthDate));
+
+      if (isUserAdult) {
+        setShowNsfwModal(true);
+      } else {
+        addToast("Account created successfully!", "success");
+        router.push("/");
+        router.refresh();
+      }
     } catch {
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNsfwChoice = async (allow: boolean) => {
+    setPendingNsfw(allow);
+    try {
+      await ApiClient.put("/api/me", { showNsfw: allow });
+      addToast("Account created successfully!", "success");
+      router.push("/");
+      router.refresh();
+    } catch {
+      addToast("Failed to save preference", "error");
+      setPendingNsfw(null);
     }
   };
 
@@ -271,6 +294,36 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+
+      {showNsfwModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+          <div className="relative max-w-md w-full rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-center">
+            <h2 className="text-xl font-bold text-zinc-100 mb-3">NSFW Content Preference</h2>
+            <p className="text-sm text-zinc-300 mb-6 leading-relaxed">
+              You are 18+. Would you like to view NSFW content? You can change this anytime in the Posts page.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleNsfwChoice(true)}
+                disabled={pendingNsfw !== null}
+                className="w-full px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-sm font-semibold transition-all duration-200 shadow-glow hover:shadow-glow-lg disabled:opacity-50"
+              >
+                Yes, show NSFW
+              </button>
+              <button
+                type="button"
+                onClick={() => handleNsfwChoice(false)}
+                disabled={pendingNsfw !== null}
+                className="w-full px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50"
+              >
+                No, hide NSFW
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

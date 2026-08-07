@@ -55,7 +55,7 @@ export class PostService {
     }
 
     const [viewer, friendRows] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId }, select: { role: true, birthDate: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { role: true, birthDate: true, showNsfw: true } }),
       filter?.feed === 'friends'
         ? prisma.friend.findMany({
             where: { OR: [{ userId }, { friendId: userId }] },
@@ -70,6 +70,7 @@ export class PostService {
       authorId,
       feed: filter?.feed,
       viewerIsAdult: isAdult(viewer?.birthDate ?? null),
+      viewerShowNsfw: viewer?.showNsfw ?? true,
       friendIds,
     });
 

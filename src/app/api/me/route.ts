@@ -25,6 +25,7 @@ export async function GET() {
         bio: true,
         role: true,
         birthDate: true,
+        showNsfw: true,
         createdAt: true,
         _count: { select: { posts: true, friends: true } },
       },
@@ -40,6 +41,7 @@ export async function GET() {
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         role: user.role,
+        showNsfw: user.showNsfw,
         isAdult: isAdult(user.birthDate),
         createdAt: user.createdAt.toISOString(),
         postCount: user._count.posts,
@@ -59,7 +61,7 @@ export async function PUT(request: NextRequest) {
     const userId = await getAuthUserId();
     const body = await request.json().catch(() => ({}));
 
-    const data: { bio?: string | null; avatarUrl?: string | null; username?: string; name?: string | null } = {};
+    const data: { bio?: string | null; avatarUrl?: string | null; username?: string; name?: string | null; showNsfw?: boolean } = {};
 
     if (body.username !== undefined) {
       const username = typeof body.username === 'string' ? body.username.trim() : '';
@@ -96,6 +98,10 @@ export async function PUT(request: NextRequest) {
       data.avatarUrl = typeof body.avatarUrl === 'string' ? body.avatarUrl : null;
     }
 
+    if (body.showNsfw !== undefined) {
+      data.showNsfw = Boolean(body.showNsfw);
+    }
+
     const user = await prisma.user.update({ where: { id: userId }, data });
     return NextResponse.json(
       successResponse({
@@ -104,6 +110,7 @@ export async function PUT(request: NextRequest) {
         name: user.name,
         avatarUrl: user.avatarUrl,
         bio: user.bio,
+        showNsfw: user.showNsfw,
       })
     );
   } catch (error) {

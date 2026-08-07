@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
     );
     return NextResponse.json(successResponse(library));
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        errorResponse('UNAUTHORIZED', 'Unauthorized'),
+        { status: 401 }
+      );
+    }
     return NextResponse.json(
       errorResponse('LIBRARY_ERROR', error instanceof Error ? error.message : 'Failed to get library'),
       { status: 500 }
