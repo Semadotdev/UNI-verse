@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
+import { isAdult } from '@/lib/age';
 import { prisma } from '@/infrastructure/database/prisma-client';
 import { successResponse, errorResponse } from '@/domain/types/api';
 
@@ -22,6 +23,7 @@ export async function GET() {
         avatarUrl: true,
         bio: true,
         role: true,
+        birthDate: true,
         createdAt: true,
         _count: { select: { posts: true, friends: true } },
       },
@@ -37,6 +39,7 @@ export async function GET() {
         avatarUrl: user.avatarUrl,
         bio: user.bio,
         role: user.role,
+        isAdult: isAdult(user.birthDate),
         createdAt: user.createdAt.toISOString(),
         postCount: user._count.posts,
         friendCount: user._count.friends,
