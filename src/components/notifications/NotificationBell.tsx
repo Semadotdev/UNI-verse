@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ApiClient } from "@/lib/api-client";
 import { timeAgo } from "@/shared/utils/time";
 import type { AppNotification } from "@/domain/entities/notification";
+import { isReactionType, reactionEmoji } from "@/domain/constants/reactions";
 import {
   closeNotificationStream,
   ensureNotificationStream,
@@ -108,7 +109,9 @@ function ActivityItem({ n }: { n: AppNotification }) {
       : "/posts";
   const verb =
     n.type === "like"
-      ? "liked your post"
+      ? isReactionType(n.message)
+        ? `reacted to your post ${reactionEmoji(n.message)}`
+        : "liked your post"
       : n.type === "reply"
         ? "replied to your comment"
         : n.type === "comment"

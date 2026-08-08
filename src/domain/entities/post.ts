@@ -1,3 +1,5 @@
+import type { ReactionType } from '@/domain/constants/reactions';
+
 export interface PostAuthor {
   username: string | null;
   name: string | null;
@@ -41,8 +43,9 @@ export interface Post {
   author: PostAuthor;
   folder: PostFolder | null;
   commentCount: number;
-  likeCount: number;
-  likedByMe: boolean;
+  reactionCount: number;
+  reactions: { type: ReactionType; count: number }[];
+  myReaction: ReactionType | null;
   canDelete: boolean;
   canEdit: boolean;
   nsfw: boolean;

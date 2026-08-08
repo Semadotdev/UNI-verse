@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PostService } from '@/application/services/post.service';
 import { getAuthUserId } from '@/lib/auth';
+import { isReactionType } from '@/domain/constants/reactions';
 import { successResponse, errorResponse } from '@/domain/types/api';
 
 const postService = new PostService();
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await getAuthUserId();
     const { id } = await params;
-    await postService.like(id, userId);
+    const body = await request.json().catch(() => ({}));
+    const type = typeof body.type === 'string' && isReactionType(body.type) ? body.type : 'like';
+    await postService.react(id, userId, type);
     return NextResponse.json(successResponse({ liked: true }));
   } catch (error) {
     return NextResponse.json(

@@ -13,7 +13,9 @@ import { FolderPreviewModal } from "@/components/posts/FolderPreviewModal";
 import { CommentSection } from "@/components/posts/CommentSection";
 import { ReportModal } from "@/components/posts/ReportModal";
 import { ConfirmModal } from "@/components/posts/ConfirmModal";
+import { ReactionPicker } from "@/components/posts/ReactionPicker";
 import { NsfwBadge } from "@/components/ui/NsfwBadge";
+import { reactionEmoji, type ReactionType } from "@/domain/constants/reactions";
 import type { Post } from "@/domain/entities/post";
 
 interface Viewer {
@@ -31,10 +33,26 @@ interface PostCardProps {
   onDeleted: (id: string) => void;
 }
 
+function mergeReaction(
+  reactions: { type: ReactionType; count: number }[],
+  type: ReactionType,
+  delta: number
+): { type: ReactionType; count: number }[] {
+  const next = reactions.map((r) => ({ ...r }));
+  const existing = next.find((r) => r.type === type);
+  if (existing) {
+    existing.count += delta;
+  } else if (delta > 0) {
+    next.push({ type, count: delta });
+  }
+  return next.filter((r) => r.count > 0);
+}
+
 export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }: PostCardProps) {
   const { addToast } = useToast();
-  const [likeCount, setLikeCount] = useState(post.likeCount);
-  const [liked, setLiked] = useState(post.likedByMe);
+  const [reactionCount, setReactionCount] = useState(post.reactionCount);
+  const [myReaction, setMyReaction] = useState(post.myReaction);
+  const [reactions, setReactions] = useState(post.reactions);
   const [likePending, setLikePending] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount);
@@ -57,17 +75,39 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
     if (likePending) return;
     setLikePending(true);
     try {
-      if (liked) {
+      if (myReaction) {
         await ApiClient.delete<{ liked: boolean }>(`/api/posts/${post.id}/like`);
-        setLiked(false);
-        setLikeCount((c) => Math.max(0, c - 1));
+        setMyReaction(null);
+        setReactionCount((c) => Math.max(0, c - 1));
+        setReactions((prev) => prev.map((r) => ({ ...r, count: r.count - 1 })).filter((r) => r.count > 0));
       } else {
         await ApiClient.post<{ liked: boolean }>(`/api/posts/${post.id}/like`);
-        setLiked(true);
-        setLikeCount((c) => c + 1);
+        setMyReaction("like");
+        setReactionCount((c) => c + 1);
+        setReactions((prev) => mergeReaction(prev, "like", 1));
       }
     } catch (e) {
-      addToast(e instanceof Error ? e.message : "Failed to update like", "error");
+      addToast(e instanceof Error ? e.message : "Failed to update reaction", "error");
+    } finally {
+      setLikePending(false);
+    }
+  };
+
+  const setReaction = async (type: ReactionType) => {
+    if (likePending) return;
+    setLikePending(true);
+    const prev = myReaction;
+    try {
+      await ApiClient.post<{ liked: boolean }>(`/api/posts/${post.id}/like`, { type });
+      if (prev) {
+        setReactions((r) => mergeReaction(mergeReaction(r, prev, -1), type, 1));
+      } else {
+        setReactionCount((c) => c + 1);
+        setReactions((r) => mergeReaction(r, type, 1));
+      }
+      setMyReaction(type);
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : "Failed to update reaction", "error");
     } finally {
       setLikePending(false);
     }
@@ -146,19 +186,34 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
       )}
 
       <div className="mt-3 flex items-center gap-1">
-        <button
-          onClick={toggleLike}
-          disabled={likePending}
-          className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors",
-            liked ? "text-primary bg-primary/10" : "text-muted hover:text-zinc-200 hover:bg-bg-overlay"
-          )}
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill={liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-          {likeCount > 0 && <span>{likeCount}</span>}
-        </button>
+        <ReactionPicker current={myReaction} onPick={setReaction}>
+          <button
+            onClick={toggleLike}
+            disabled={likePending}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors select-none",
+              myReaction ? "text-primary bg-primary/10" : "text-muted hover:text-zinc-200 hover:bg-bg-overlay"
+            )}
+          >
+            {myReaction ? (
+              <span className="text-base leading-none">{reactionEmoji(myReaction)}</span>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            )}
+            {reactionCount > 0 && <span>{reactionCount}</span>}
+          </button>
+        </ReactionPicker>
+        {reactions.length > 0 && (
+          <div className="flex items-center gap-1 text-xs text-muted" title={reactions.map((r) => `${r.count}× ${reactionEmoji(r.type)}`).join("  ")}>
+            {reactions.map((r) => (
+              <span key={r.type} aria-hidden>
+                {reactionEmoji(r.type)}
+              </span>
+            ))}
+          </div>
+        )}
 
         <button
           onClick={() => setCommentsOpen((o) => !o)}

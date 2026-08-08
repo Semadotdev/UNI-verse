@@ -10,7 +10,7 @@ vi.mock("@/infrastructure/database/prisma-client", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
-    like: { findUnique: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    like: { findUnique: vi.fn(), findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn(), groupBy: vi.fn() },
     user: { findUnique: vi.fn() },
     folder: { findUnique: vi.fn(), findFirst: vi.fn() },
     friend: { findMany: vi.fn() },
@@ -22,7 +22,7 @@ vi.mock("@/infrastructure/database/prisma-client", () => ({
 vi.mock("@/application/services/notification.service", () => ({
   NotificationService: class {
     onPostCommented = vi.fn().mockResolvedValue(undefined);
-    onPostLiked = vi.fn().mockResolvedValue(undefined);
+    onPostReacted = vi.fn().mockResolvedValue(undefined);
     onCommentReplied = vi.fn().mockResolvedValue(undefined);
   },
 }));
@@ -137,6 +137,7 @@ describe("PostService.update", () => {
     svc = new PostService();
     vi.mocked(prisma.folder.findFirst).mockResolvedValue(folderRow("f2") as never);
     vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);
   });
 
@@ -222,6 +223,7 @@ describe("PostService.get age gate", () => {
   beforeEach(() => {
     svc = new PostService();
     vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
   });
 
   it("returns null for a minor viewing an nsfw post", async () => {
@@ -303,5 +305,66 @@ describe("PostService.listFeed", () => {
     expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ id: { in: [] } }) })
     );
+  });
+});
+
+describe("PostService.react", () => {
+  let svc: PostService;
+
+  beforeEach(() => {
+    svc = new PostService();
+    vi.clearAllMocks();
+    vi.mocked(prisma.post.findUnique).mockResolvedValue({ id: "p1", authorId: "u2" } as never);
+  });
+
+  it("upserts the reaction type and notifies the author", async () => {
+    vi.mocked(prisma.like.upsert).mockResolvedValue({} as never);
+
+    await svc.react("p1", "u1", "love");
+
+    expect(prisma.like.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: expect.objectContaining({ type: "love" }) })
+    );
+  });
+
+  it("updates an existing reaction type in place", async () => {
+    vi.mocked(prisma.like.upsert).mockResolvedValue({} as never);
+
+    await svc.react("p1", "u1", "like");
+    await svc.react("p1", "u1", "angry");
+
+    const last = vi.mocked(prisma.like.upsert).mock.calls.at(-1)![0] as { update: { type: string } };
+    expect(last.update.type).toBe("angry");
+    expect(prisma.like.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("PostService.get reactions", () => {
+  let svc: PostService;
+
+  beforeEach(() => {
+    svc = new PostService();
+    vi.clearAllMocks();
+    vi.mocked(prisma.like.findUnique).mockResolvedValue({ type: "love" } as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);
+  });
+
+  it("maps my reaction and per-type counts into the post", async () => {
+    vi.mocked(prisma.post.findUnique).mockResolvedValue(
+      postRow({ nsfw: false, _count: { comments: 1, likes: 5 } }) as never
+    );
+    vi.mocked(prisma.like.groupBy).mockResolvedValue([
+      { postId: "p1", type: "love", _count: { _all: 3 } },
+      { postId: "p1", type: "like", _count: { _all: 2 } },
+    ] as never);
+
+    const post = await svc.get("p1", "u1");
+
+    expect(post!.myReaction).toBe("love");
+    expect(post!.reactionCount).toBe(5);
+    expect(post!.reactions).toEqual([
+      { type: "like", count: 2 },
+      { type: "love", count: 3 },
+    ]);
   });
 });

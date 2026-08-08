@@ -7,6 +7,7 @@ import { NotificationService } from '@/application/services/notification.service
 import { isAdult } from '@/lib/age';
 import { buildFeedWhere, type PostFeed } from '@/application/services/post-feed-where';
 import { isNsfwCategories } from '@/domain/constants/nsfw-genres';
+import { isReactionType, REACTIONS, type ReactionType } from '@/domain/constants/reactions';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('PostService');
@@ -84,14 +85,28 @@ export class PostService {
       }),
       prisma.post.count({ where }),
     ]);
-    const liked = await prisma.like.findMany({
-      where: { userId, postId: { in: posts.map((p) => p.id) } },
-      select: { postId: true },
-    });
 
-    const likedSet = new Set(liked.map((l) => l.postId));
+    const postIds = posts.map((p) => p.id);
+    const [myLikes, reactionGroups] = await Promise.all([
+      prisma.like.findMany({
+        where: { userId, postId: { in: postIds } },
+        select: { postId: true, type: true },
+      }),
+      prisma.like.groupBy({
+        by: ['postId', 'type'],
+        where: { postId: { in: postIds } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const myReactionByPost = myLikes.reduce<Map<string, ReactionType>>((m, l) => {
+      if (isReactionType(l.type)) m.set(l.postId, l.type);
+      return m;
+    }, new Map());
     const isAdmin = viewer?.role === 'admin';
-    const data = posts.map((p) => this.toPost(p, userId, isAdmin, likedSet.has(p.id)));
+    const data = posts.map((p) =>
+      this.toPost(p, userId, isAdmin, myReactionByPost.get(p.id) ?? null, reactionGroups)
+    );
     const totalPages = Math.max(1, Math.ceil(total / safeLimit));
 
     return { data, page, totalPages, hasMore: page < totalPages };
@@ -101,16 +116,21 @@ export class PostService {
     const post = await prisma.post.findUnique({ where: { id: postId }, include: POST_INCLUDE });
     if (!post) return null;
 
-    const [liked, viewer] = await Promise.all([
+    const [myLike, viewer, reactionGroups] = await Promise.all([
       prisma.like.findUnique({ where: { postId_userId: { postId, userId: viewerId } } }),
       prisma.user.findUnique({ where: { id: viewerId }, select: { role: true, birthDate: true } }),
+      prisma.like.groupBy({
+        by: ['postId', 'type'],
+        where: { postId },
+        _count: { _all: true },
+      }),
     ]);
 
     if (!skipAgeGate && post.nsfw && !isAdult(viewer?.birthDate ?? null)) {
       return null;
     }
 
-    return this.toPost(post, viewerId, viewer?.role === 'admin', Boolean(liked));
+    return this.toPost(post, viewerId, viewer?.role === 'admin', isReactionType(myLike?.type) ? myLike.type : null, reactionGroups);
   }
 
   async create(authorId: string, input: CreatePostInput): Promise<Post> {
@@ -145,7 +165,7 @@ export class PostService {
     });
 
     logger.info(`Post created by ${authorId}`);
-    return this.toPost(post, authorId, false, false);
+    return this.toPost(post, authorId, false, null, []);
   }
 
   async update(postId: string, authorId: string, input: UpdatePostInput): Promise<Post> {
@@ -198,15 +218,15 @@ export class PostService {
     logger.info(`Post deleted: ${postId}`);
   }
 
-  async like(postId: string, userId: string): Promise<void> {
+  async react(postId: string, userId: string, type: ReactionType = 'like'): Promise<void> {
     const post = await prisma.post.findUnique({ where: { id: postId }, select: { id: true, authorId: true } });
     if (!post) throw new Error('Post not found');
     await prisma.like.upsert({
       where: { postId_userId: { postId, userId } },
-      create: { postId, userId },
-      update: {},
+      create: { postId, userId, type },
+      update: { type },
     });
-    await this.notificationService.onPostLiked(postId, userId);
+    await this.notificationService.onPostReacted(postId, userId, type);
   }
 
   async unlike(postId: string, userId: string): Promise<void> {
@@ -226,7 +246,23 @@ export class PostService {
     return folder ? folder.items.some((item) => isNsfwCategories(item.categories)) : false;
   }
 
-  private toPost(p: PostWithRelations, viewerId: string, isAdmin: boolean, likedByMe: boolean): Post {
+  private toPost(
+    p: PostWithRelations,
+    viewerId: string,
+    isAdmin: boolean,
+    myReaction: ReactionType | null,
+    reactionGroups: { postId: string; type: string; _count: { _all: number } }[]
+  ): Post {
+    const counts = new Map<string, number>();
+    for (const group of reactionGroups) {
+      if (group.postId === p.id && isReactionType(group.type)) {
+        counts.set(group.type, group._count._all);
+      }
+    }
+    const reactions = REACTIONS.filter((r) => counts.has(r.type)).map((r) => ({
+      type: r.type,
+      count: counts.get(r.type) ?? 0,
+    }));
     return {
       id: p.id,
       nsfw: p.nsfw,
@@ -247,8 +283,9 @@ export class PostService {
           }
         : null,
       commentCount: p._count.comments,
-      likeCount: p._count.likes,
-      likedByMe,
+      reactionCount: p._count.likes,
+      reactions,
+      myReaction,
       canDelete: p.authorId === viewerId || isAdmin,
       canEdit: p.authorId === viewerId,
     };

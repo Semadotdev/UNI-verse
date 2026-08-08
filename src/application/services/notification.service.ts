@@ -33,7 +33,7 @@ function mapNotification(n: NotificationRecord): AppNotification {
 }
 
 export class NotificationService {
-  async onPostLiked(postId: string, actorId: string): Promise<void> {
+  async onPostReacted(postId: string, actorId: string, reactionType: string): Promise<void> {
     const post = await prisma.post.findUnique({
       where: { id: postId },
       select: { authorId: true },
@@ -47,7 +47,7 @@ export class NotificationService {
     if (existing) return;
 
     await prisma.notification.create({
-      data: { userId: post.authorId, actorId, postId, type: 'like' },
+      data: { userId: post.authorId, actorId, postId, type: 'like', message: reactionType },
     });
     logger.info(`Like notification created for post ${postId}`);
   }
