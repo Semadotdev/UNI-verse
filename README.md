@@ -62,7 +62,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | Variable | Description |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string (Supabase pooler) |
-| `DIRECT_URL` | Direct PostgreSQL connection string (migrations) |
+| `DIRECT_URL` | Direct PostgreSQL connection string (migrations/backups) |
+| `SHADOW_DATABASE_URL` | Separate throwaway DB for `migrate dev` validation (optional) |
+| `ALLOW_DESTRUCTIVE_MIGRATIONS` | Set to `true` to bypass the destructive-command guard (don't) |
 | `SUPABASE_URL` | Your Supabase project URL |
 | `SUPABASE_ANON_KEY` | Supabase anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
@@ -78,9 +80,23 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm start` | Start the production server |
 | `npm run lint` | Run ESLint |
 | `npm run typecheck` | Type-check the codebase |
-| `npm run db:push` | Push the Prisma schema to the database |
-| `npm run db:migrate` | Create and run database migrations |
+| `npm run db:migrate` | Apply pending migrations with `prisma migrate deploy` (safe — never resets) |
+| `npm run db:migrate:create` | Create a new migration without applying it (guarded) |
+| `npm run db:push` | Push schema changes (guarded against `--accept-data-loss`) |
+| `npm run db:reset` | Reset the DB — **blocked** against the shared Supabase DB |
+| `npm run db:backup` | Local `pg_dump` backup into `backups/` (requires `pg_dump`) |
 | `npm run db:studio` | Open Prisma Studio |
+
+## Database safety
+
+> **This DB was wiped once already by `prisma migrate dev` running `DROP SCHEMA "public" CASCADE`**
+> (no migration history existed because the schema was created with `db push`, so Prisma offered a reset).
+> The guard scripts exist to stop that from ever happening again.
+
+- Destructive commands (`migrate dev`, `migrate reset`, `db push --accept-data-loss`) are **blocked** by `scripts/db-guard.mjs` when targeting the shared Supabase DB, unless `ALLOW_DESTRUCTIVE_MIGRATIONS=true` is set.
+- **Apply** schema changes with `npm run db:migrate` (`prisma migrate deploy`), which only runs pending migrations and never drops data.
+- **Create** new migrations with `npm run db:migrate:create` (`migrate dev --create-only`). It validates against `SHADOW_DATABASE_URL` — point that at a local/throwaway Postgres, never the shared DB.
+- **Backups**: `npm run db:backup` for an on-demand `pg_dump`; a scheduled GitHub Action (`.github/workflows/db-backup.yml`) runs daily at 03:17 UTC and stores the last 14 dumps in the `db-backups` Supabase Storage bucket. Add `DIRECT_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` as repo secrets and create the bucket once.
 
 ## Deployment
 

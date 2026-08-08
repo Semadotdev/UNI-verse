@@ -205,6 +205,7 @@ export default function PostsPage() {
               key={post.id}
               post={post}
               viewer={viewer}
+              onEdit={openEditor}
               onEdited={handleSaved}
               onDeleted={handleDeleted}
             />

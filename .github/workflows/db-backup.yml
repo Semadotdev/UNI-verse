@@ -1,0 +1,75 @@
+name: database-backup
+
+on:
+  schedule:
+    # Daily at 03:17 UTC
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create backups dir
+        run: mkdir -p backups
+
+      - name: Dump database (pg_dump)
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          echo "Starting pg_dump..."
+          docker run --rm \
+            -e PGPASSWORD="$(node -e 'console.log(new URL(process.env.DIRECT_URL).password)' 2>/dev/null || true)" \
+            -v "${{ github.workspace }}/backups:/backups" \
+            postgres:16-alpine \
+            pg_dump "$DIRECT_URL" --format custom --file /backups/$(date -u +%Y-%m-%dT%H-%M-%SZ).dump
+          ls -la backups
+
+      - name: Upload backups to Supabase Storage bucket
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          BUCKET="db-backups"
+          for f in backups/*.dump; do
+            echo "Uploading $f ..."
+            curl -sS -X POST "$SUPABASE_URL/storage/v1/object/$BUCKET/$(basename "$f")" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$f" \
+              -w "\nupload status: %{http_code}\n"
+          done
+
+          # Prune old backups, keep most recent 14
+          echo "Pruning old backups (keep 14)..."
+          node -e '
+            const list = await fetch(process.env.SUPABASE_URL + "/storage/v1/object/list/db-backups", {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + process.env.SUPABASE_SERVICE_ROLE_KEY,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ limit: 100, offset: 0, sortBy: { column: "created_at", order: "desc" } }),
+            });
+            const files = await list.json();
+            const dumps = (Array.isArray(files) ? files : []).filter(f => f.name.endsWith(".dump"));
+            console.log(dumps.length + " backups on bucket");
+            for (const f of dumps.slice(14)) {
+              const del = await fetch(process.env.SUPABASE_URL + "/storage/v1/object/db-backups/" + f.name, {
+                method: "DELETE",
+                headers: { Authorization: "Bearer " + process.env.SUPABASE_SERVICE_ROLE_KEY },
+              });
+              console.log("pruned " + f.name + " -> " + del.status);
+            }
+          '
+
+      - name: Summary
+        run: echo "::notice::Database backup completed at $(date -u)"

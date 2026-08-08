@@ -26,11 +26,12 @@ interface PostCardProps {
   post: Post;
   viewer: Viewer | null;
   hideAuthor?: boolean;
+  onEdit?: (post: Post) => void;
   onEdited: (post: Post) => void;
   onDeleted: (id: string) => void;
 }
 
-export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted }: PostCardProps) {
+export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }: PostCardProps) {
   const { addToast } = useToast();
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [liked, setLiked] = useState(post.likedByMe);
@@ -42,8 +43,8 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdited, onDeleted
   const [folderOpen, setFolderOpen] = useState(false);
 
   const menuItems: { label: string; danger?: boolean; onClick: () => void }[] = [];
-  if (post.canEdit) {
-    menuItems.push({ label: "Edit", onClick: () => onEdited(post) });
+  if (post.canEdit && onEdit) {
+    menuItems.push({ label: "Edit", onClick: () => onEdit(post) });
   }
   if (post.canDelete) {
     menuItems.push({ label: "Delete", danger: true, onClick: () => setShowDelete(true) });
