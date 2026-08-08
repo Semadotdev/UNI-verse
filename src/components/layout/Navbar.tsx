@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,8 @@ const navItems = [
   { href: "/history", label: "History", icon: (<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>) },
 ];
 
+const subscribeToClient = () => () => {};
+
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -40,6 +42,7 @@ export function Navbar() {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [iosInstallOpen, setIosInstallOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [me, setMe] = useState<{ avatarUrl: string | null; username: string | null } | null>(null);
 
@@ -61,7 +64,25 @@ export function Navbar() {
     return () => window.removeEventListener("appinstalled", handler);
   }, [addToast]);
 
+  const isIOS = useSyncExternalStore(
+    subscribeToClient,
+    () => /iPhone|iPad|iPod/.test(navigator.userAgent),
+    () => false,
+  );
+
+  const isStandalone = useSyncExternalStore(
+    subscribeToClient,
+    () =>
+      (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches,
+    () => false,
+  );
+
   const handleInstall = async () => {
+    if (isIOS && !isStandalone) {
+      setIosInstallOpen(true);
+      return;
+    }
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -209,7 +230,7 @@ export function Navbar() {
         <div className="my-4 border-t border-zinc-800" />
         <ThemePicker />
 
-        {deferredPrompt && (
+        {(deferredPrompt || (isIOS && !isStandalone)) && (
           <>
             <div className="my-4 border-t border-zinc-800" />
             <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">App</p>
@@ -302,6 +323,36 @@ export function Navbar() {
         <p className="text-sm text-zinc-300">Are you sure you want to sign out?</p>
       </Modal>
 
+      {/* iOS install instructions modal */}
+      <Modal
+        open={iosInstallOpen}
+        onClose={() => setIosInstallOpen(false)}
+        title="Install UNI-verse on iPhone/iPad"
+        size="sm"
+      >
+        <ol className="space-y-4 text-sm text-zinc-300">
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">1</span>
+            <span>
+              Tap the <span className="font-semibold text-zinc-100">Share</span> button (
+              <svg className="inline h-4 w-4 align-text-bottom" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v15" /><path d="m4 6 8-4 8 4" /><rect x="4" y="14" width="16" height="8" rx="2" /></svg>
+              ) in Safari&apos;s toolbar.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">2</span>
+            <span>Scroll down and tap <span className="font-semibold text-zinc-100">Add to Home Screen</span>.</span>
+          </li>
+          <li className="flex gap-3">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary text-xs font-bold">3</span>
+            <span>Tap <span className="font-semibold text-zinc-100">Add</span> in the top-right corner.</span>
+          </li>
+        </ol>
+        <p className="mt-4 text-xs text-muted">
+          The UNI-verse icon appears on your Home Screen and opens fullscreen, just like a native app. This works in Safari (Chrome on iPhone uses the same engine and share sheet).
+        </p>
+      </Modal>
+
       {/* Desktop top nav */}
       <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-16 items-center justify-between px-6 bg-bg-raised/95 backdrop-blur-md border-b border-border">
         <Link href="/" className="flex items-center gap-2.5 group">
@@ -359,7 +410,7 @@ export function Navbar() {
 
           <NotificationBell variant="desktop" />
 
-          {deferredPrompt && (
+          {(deferredPrompt || (isIOS && !isStandalone)) && (
             <button
               onClick={handleInstall}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200"
