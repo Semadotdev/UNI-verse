@@ -111,11 +111,11 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
                   href={`/profile/${encodeURIComponent(post.author.username)}`}
                   className="block text-sm font-semibold text-zinc-100 truncate hover:text-primary-light transition-colors"
                 >
-                  {post.author.username}
+                  {post.author.name ?? post.author.username}
                 </Link>
               ) : (
                 <p className="text-sm font-semibold text-zinc-100 truncate">
-                  {post.author.username ?? post.author.name ?? "Unknown"}
+                  {post.author.name ?? post.author.username ?? "Unknown"}
                 </p>
               )}
               <p className="text-xs text-muted">{timeAgo(post.createdAt)}</p>

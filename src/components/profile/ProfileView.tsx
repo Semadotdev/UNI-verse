@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ApiClient } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
+import { useLibrary } from "@/contexts/LibraryContext";
 import { PostCard } from "@/components/posts/PostCard";
+import { PostComposer } from "@/components/posts/PostComposer";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
 import { FriendSearch } from "@/components/profile/FriendSearch";
 import { Modal } from "@/components/ui/Modal";
@@ -22,6 +24,7 @@ interface ProfileViewProps {
 
 export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps) {
   const { addToast } = useToast();
+  const { folders } = useLibrary();
   const [posts, setPosts] = useState<Post[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -36,6 +39,8 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
   const [friends, setFriends] = useState<FriendSummary[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [friendsModalOpen, setFriendsModalOpen] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [editing, setEditing] = useState<Post | null>(null);
 
   const username = profile.username ?? "";
 
@@ -74,6 +79,17 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
   const handleDeleted = (id: string) => {
     setPosts((prev) => prev.filter((p) => p.id !== id));
     setPostCount((c) => Math.max(0, c - 1));
+  };
+
+  const openEditor = (post: Post) => {
+    setEditing(post);
+    setComposerOpen(true);
+  };
+
+  const handlePostSaved = (post: Post) => {
+    setPosts((prev) => prev.map((p) => (p.id === post.id ? post : p)));
+    setComposerOpen(false);
+    setEditing(null);
   };
 
   const loadMore = async () => {
@@ -232,6 +248,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
               post={post}
               viewer={viewer}
               hideAuthor
+              onEdit={openEditor}
               onEdited={handleSaved}
               onDeleted={handleDeleted}
             />
@@ -249,6 +266,19 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
       )}
 
       {searchOpen && <FriendSearch onClose={() => setSearchOpen(false)} />}
+
+      <PostComposer
+        key={editing?.id ?? "profile-edit"}
+        open={composerOpen}
+        onClose={() => {
+          setComposerOpen(false);
+          setEditing(null);
+        }}
+        folders={folders}
+        viewer={viewer}
+        editing={editing}
+        onSaved={handlePostSaved}
+      />
 
       {isOwn && (
         <Modal
