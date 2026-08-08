@@ -1,9 +1,13 @@
 import { proxyImage } from '@/infrastructure/proxy/image-proxy';
 import { errorResponse } from '@/domain/types/api';
+import { enforceRateLimit } from '@/shared/utils/rate-limit';
 import { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(request, 'image:proxy', 60 * 1000, 300, 'ip', 'image');
+    if (rateLimit.response) return rateLimit.response;
+
     const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
     const headersParam = searchParams.get('headers');

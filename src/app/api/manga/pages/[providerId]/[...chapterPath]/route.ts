@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MangaService } from '@/application/services/manga.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
+import { enforceRateLimit } from '@/shared/utils/rate-limit';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('PagesAPI');
@@ -11,6 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ providerId: string; chapterPath: string[] }> }
 ) {
   try {
+    const rateLimit = await enforceRateLimit(request, 'manga:pages', 60 * 1000, 120, 'ip', 'pages');
+    if (rateLimit.response) return rateLimit.response;
+
     const { providerId, chapterPath } = await params;
     const chapterId = chapterPath.join('/');
     logger.info(`Fetching pages: provider=${providerId}, chapterId=${chapterId}`);

@@ -3,6 +3,7 @@ import { UploadService } from '@/application/services/upload.service';
 import { getAuthUserId } from '@/lib/auth';
 import { prisma } from '@/infrastructure/database/prisma-client';
 import { successResponse, errorResponse } from '@/domain/types/api';
+import { enforceRateLimit } from '@/shared/utils/rate-limit';
 
 const uploadService = new UploadService();
 
@@ -11,6 +12,9 @@ const VALIDATION_ERRORS = new Set(['Invalid file type', 'File too large']);
 export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId();
+    const rateLimit = await enforceRateLimit(request, 'upload:avatar', 60 * 1000, 5, 'user', userId);
+    if (rateLimit.response) return rateLimit.response;
+
     const formData = await request.formData();
     const file = formData.get('file');
 

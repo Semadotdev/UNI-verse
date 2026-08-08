@@ -94,9 +94,10 @@ const MAX_FILTER_PAGES = 4;
 async function fetchWithFilters(
   buildUrl: (offset: number) => string,
   filters?: ProviderFilters,
+  startOffset = 0,
 ): Promise<{ items: Manga[]; totalBeforeFilter: number }> {
   if (!filters?.status && !filters?.minChapters) {
-    const data = await fetchJson<AsuraApiResponse>(buildUrl(0));
+    const data = await fetchJson<AsuraApiResponse>(buildUrl(startOffset));
     return { items: (data.data || []).map(mapSeriesToManga), totalBeforeFilter: data.meta?.total || 0 };
   }
 
@@ -146,10 +147,10 @@ export class AsuraScansProvider implements Provider {
 
   async search(query: string, page = 1, filters?: ProviderFilters): Promise<PaginatedResult<Manga>> {
     const hasActiveFilters = !!(filters?.status || filters?.minChapters);
-    const fetchOffset = hasActiveFilters ? 0 : (page - 1) * PAGE_SIZE;
     const { items: allFiltered, totalBeforeFilter } = await fetchWithFilters(
       (offset) => `${API_BASE}/series?search=${encodeURIComponent(query)}&offset=${offset}`,
       filters,
+      hasActiveFilters ? 0 : (page - 1) * PAGE_SIZE,
     );
 
     if (hasActiveFilters) {
@@ -211,6 +212,7 @@ export class AsuraScansProvider implements Provider {
     const { items: allFiltered, totalBeforeFilter } = await fetchWithFilters(
       (offset) => `${API_BASE}/series?sort=POPULAR&offset=${offset}`,
       filters,
+      hasActiveFilters ? 0 : (page - 1) * PAGE_SIZE,
     );
 
     if (hasActiveFilters) {
@@ -229,6 +231,7 @@ export class AsuraScansProvider implements Provider {
     const { items: allFiltered, totalBeforeFilter } = await fetchWithFilters(
       (offset) => `${API_BASE}/series?sort=LATEST&offset=${offset}`,
       filters,
+      hasActiveFilters ? 0 : (page - 1) * PAGE_SIZE,
     );
 
     if (hasActiveFilters) {

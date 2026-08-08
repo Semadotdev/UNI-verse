@@ -1,10 +1,15 @@
-interface RateLimiterEntry {
-  count: number;
+import { prisma } from '@/infrastructure/database/prisma-client';
+
+const PRUNE_PROBABILITY = 0.05;
+
+export interface RateLimitResult {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
   resetAt: number;
 }
 
 export class RateLimiter {
-  private store = new Map<string, RateLimiterEntry>();
   private windowMs: number;
   private maxRequests: number;
 
@@ -13,32 +18,50 @@ export class RateLimiter {
     this.maxRequests = maxRequests;
   }
 
-  isAllowed(key: string): boolean {
+  async isAllowed(key: string): Promise<RateLimitResult> {
     const now = Date.now();
-    const entry = this.store.get(key);
+    const bucketKey = `${key}:${Math.floor(now / this.windowMs)}`;
+    const resetAt = (Math.floor(now / this.windowMs) + 1) * this.windowMs;
 
-    if (!entry || now > entry.resetAt) {
-      this.store.set(key, { count: 1, resetAt: now + this.windowMs });
-      return true;
+    const [rateLimitBucket, staleCount] = await prisma.$transaction([
+      prisma.rateLimitBucket.upsert({
+        where: { key: bucketKey },
+        create: { key: bucketKey, count: 1, resetAt: new Date(resetAt) },
+        update: { count: { increment: 1 } },
+      }),
+      prisma.rateLimitBucket.count({
+        where: { resetAt: { lt: new Date(now) } },
+      }),
+    ]);
+
+    if (staleCount > 0 && Math.random() < PRUNE_PROBABILITY) {
+      await prisma.rateLimitBucket.deleteMany({
+        where: { resetAt: { lt: new Date(now) } },
+      });
     }
 
-    if (entry.count >= this.maxRequests) {
-      return false;
-    }
-
-    entry.count++;
-    return true;
+    const remaining = Math.max(0, this.maxRequests - rateLimitBucket.count);
+    return {
+      allowed: rateLimitBucket.count <= this.maxRequests,
+      limit: this.maxRequests,
+      remaining,
+      resetAt,
+    };
   }
 
-  getRemaining(key: string): number {
-    const entry = this.store.get(key);
-    if (!entry || Date.now() > entry.resetAt) return this.maxRequests;
-    return Math.max(0, this.maxRequests - entry.count);
+  async getRemaining(key: string): Promise<number> {
+    const now = Date.now();
+    const bucketKey = `${key}:${Math.floor(now / this.windowMs)}`;
+    const bucket = await prisma.rateLimitBucket.findUnique({ where: { key: bucketKey } });
+    if (!bucket) return this.maxRequests;
+    return Math.max(0, this.maxRequests - bucket.count);
   }
 
-  getResetMs(key: string): number {
-    const entry = this.store.get(key);
-    if (!entry || Date.now() > entry.resetAt) return 0;
-    return Math.max(0, entry.resetAt - Date.now());
+  async getResetMs(key: string): Promise<number> {
+    const now = Date.now();
+    const bucketKey = `${key}:${Math.floor(now / this.windowMs)}`;
+    const bucket = await prisma.rateLimitBucket.findUnique({ where: { key: bucketKey } });
+    if (!bucket) return 0;
+    return Math.max(0, bucket.resetAt.getTime() - now);
   }
 }

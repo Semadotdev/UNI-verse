@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServiceClient } from "@/infrastructure/auth/supabase-client";
 import { prisma } from "@/infrastructure/database/prisma-client";
+import { enforceRateLimit } from "@/shared/utils/rate-limit";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(request, 'auth:register', 10 * 60 * 1000, 5, 'ip', 'register');
+    if (rateLimit.response) return rateLimit.response;
+
     const { email, password, username, birthDate } = await request.json();
 
     if (!email || !password || !username || !birthDate) {

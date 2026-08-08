@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SearchService } from '@/application/services/search.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
+import { enforceRateLimit } from '@/shared/utils/rate-limit';
 import type { ProviderFilters } from '@/domain/interfaces/provider';
 
 const searchService = new SearchService();
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(request, 'manga:search', 60 * 1000, 10, 'ip', 'search');
+    if (rateLimit.response) return rateLimit.response;
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
     const providers = searchParams.get('providers')?.split(',').filter(Boolean);

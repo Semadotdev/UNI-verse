@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SearchService } from '@/application/services/search.service';
 import { ProviderService } from '@/application/services/provider.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
+import { enforceRateLimit } from '@/shared/utils/rate-limit';
 import type { ProviderFilters } from '@/domain/interfaces/provider';
 
 const searchService = new SearchService();
@@ -9,6 +10,9 @@ const providerService = new ProviderService();
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(request, 'manga:latest', 60 * 1000, 30, 'ip', 'latest');
+    if (rateLimit.response) return rateLimit.response;
+
     const { searchParams } = new URL(request.url);
     let providerId = searchParams.get('providerId');
     const page = parseInt(searchParams.get('page') || '1', 10);

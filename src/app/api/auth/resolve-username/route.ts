@@ -1,8 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/infrastructure/database/prisma-client";
+import { enforceRateLimit } from "@/shared/utils/rate-limit";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const rateLimit = await enforceRateLimit(request, 'auth:resolve-username', 60 * 1000, 15, 'ip', 'resolve-username');
+    if (rateLimit.response) return rateLimit.response;
+
     const { username } = await request.json();
 
     if (!username || typeof username !== "string") {
