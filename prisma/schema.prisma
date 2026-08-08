@@ -313,6 +313,7 @@ model Notification {
   actorId   String
   postId    String?
   commentId String?
+  message   String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 

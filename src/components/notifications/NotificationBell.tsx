@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
@@ -9,6 +9,12 @@ import { cn } from "@/lib/utils";
 import { ApiClient } from "@/lib/api-client";
 import { timeAgo } from "@/shared/utils/time";
 import type { AppNotification } from "@/domain/entities/notification";
+import {
+  closeNotificationStream,
+  ensureNotificationStream,
+  markAllNotificationsRead,
+  notificationStreamStore,
+} from "@/lib/notification-stream";
 import {
   FEATURE_NOTIFICATIONS,
   NOTIFICATIONS_STORAGE_KEY,
@@ -49,6 +55,7 @@ function setStoredReadIds(ids: string[]) {
 
 interface NotificationBellProps {
   variant?: "desktop" | "mobile";
+  userId?: string | null;
 }
 
 type TabKey = "activity" | "whatsnew";
@@ -106,8 +113,17 @@ function ActivityItem({ n }: { n: AppNotification }) {
         ? "replied to your comment"
         : n.type === "comment"
           ? "commented on your post"
-          : "added you as a friend";
-  const snippet = n.type === "reply" ? n.commentSnippet : n.postSnippet;
+          : n.type === "post_removed"
+            ? "removed your post"
+            : n.type === "comment_removed"
+              ? "removed your comment"
+              : "added you as a friend";
+  const snippet =
+    n.type === "post_removed" || n.type === "comment_removed"
+      ? n.message
+      : n.type === "reply"
+        ? n.commentSnippet
+        : n.postSnippet;
 
   return (
     <li>
@@ -137,7 +153,7 @@ function ActivityItem({ n }: { n: AppNotification }) {
           )}
         </div>
         <p className="mt-0.5 text-xs text-zinc-400">{verb}</p>
-        {(n.type === "comment" || n.type === "reply") && snippet && (
+        {(n.type === "comment" || n.type === "reply" || n.type === "post_removed" || n.type === "comment_removed") && snippet && (
           <p className="mt-1 text-[11px] text-zinc-500 line-clamp-1">
             &ldquo;{snippet}&rdquo;
           </p>
@@ -148,26 +164,49 @@ function ActivityItem({ n }: { n: AppNotification }) {
   );
 }
 
-export function NotificationBell({ variant = "desktop" }: NotificationBellProps) {
+export function NotificationBell({ variant = "desktop", userId = null }: NotificationBellProps) {
   const pathname = usePathname();
   const readIds = useSyncExternalStore(
     subscribeReadIds,
     getReadIdsSnapshot,
     () => EMPTY_READ_IDS
   );
+  const streamState = useSyncExternalStore(
+    notificationStreamStore.subscribe,
+    notificationStreamStore.getSnapshot,
+    notificationStreamStore.getServerSnapshot
+  );
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activity, setActivity] = useState<AppNotification[]>([]);
-  const [activityUnread, setActivityUnread] = useState(0);
+  const [storedActivityUnread, setStoredActivityUnread] = useState(0);
   const [activityLoaded, setActivityLoaded] = useState(false);
   const [tab, setTab] = useState<TabKey>("activity");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
+  useEffect(() => {
+    if (userId) ensureNotificationStream(userId);
+    else closeNotificationStream();
+  }, [userId]);
+
   const allIds = FEATURE_NOTIFICATIONS.map((n) => n.id);
   const systemUnread = FEATURE_NOTIFICATIONS.filter(
     (n) => !readIds.includes(n.id)
   ).length;
+
+  const activityUnread = streamState.connected
+    ? streamState.unreadCount
+    : storedActivityUnread;
+
+  const liveActivity = useMemo(() => {
+    if (streamState.notifications.length === 0) return activity;
+    const seen = new Set(activity.map((n) => n.id));
+    const fresh = streamState.notifications.filter((n) => !seen.has(n.id));
+    if (fresh.length === 0) return activity;
+    return [...fresh, ...activity].slice(0, 30);
+  }, [activity, streamState.notifications]);
+
   const unreadCount = activityUnread + systemUnread;
 
   const refreshActivity = useCallback(async () => {
@@ -177,10 +216,10 @@ export function NotificationBell({ variant = "desktop" }: NotificationBellProps)
         unreadCount: number;
       }>("/api/notifications?limit=30");
       setActivity(res.notifications);
-      setActivityUnread(res.unreadCount);
+      setStoredActivityUnread(res.unreadCount);
     } catch {
       setActivity([]);
-      setActivityUnread(0);
+      setStoredActivityUnread(0);
     } finally {
       setActivityLoaded(true);
     }
@@ -195,12 +234,12 @@ export function NotificationBell({ variant = "desktop" }: NotificationBellProps)
       .then((res) => {
         if (cancelled) return;
         setActivity(res.notifications);
-        setActivityUnread(res.unreadCount);
+        setStoredActivityUnread(res.unreadCount);
       })
       .catch(() => {
         if (cancelled) return;
         setActivity([]);
-        setActivityUnread(0);
+        setStoredActivityUnread(0);
       })
       .finally(() => {
         if (!cancelled) setActivityLoaded(true);
@@ -213,7 +252,8 @@ export function NotificationBell({ variant = "desktop" }: NotificationBellProps)
   const markAllRead = () => {
     setStoredReadIds(allIds);
     setActivity((prev) => prev.map((n) => ({ ...n, read: true })));
-    setActivityUnread(0);
+    setStoredActivityUnread(0);
+    markAllNotificationsRead();
     ApiClient.post("/api/notifications/read").catch(() => {});
   };
 
@@ -271,11 +311,11 @@ export function NotificationBell({ variant = "desktop" }: NotificationBellProps)
   const isReadRoute = pathname.startsWith("/read");
 
   const activitySection =
-    activityLoaded && activity.length === 0 ? (
+    activityLoaded && liveActivity.length === 0 ? (
       <p className="px-3 py-2.5 text-xs text-zinc-400">No activity yet.</p>
     ) : (
       <ul className="space-y-1">
-        {activity.map((n) => (
+        {liveActivity.map((n) => (
           <ActivityItem key={n.id} n={n} />
         ))}
       </ul>

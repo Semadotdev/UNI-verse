@@ -151,7 +151,7 @@ export function Navbar() {
   return (
     <>
       {/* Mobile notification bell */}
-      {!isBellHidden && <NotificationBell variant="mobile" />}
+      {!isBellHidden && <NotificationBell variant="mobile" userId={user?.id ?? null} />}
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-bg-raised/95 backdrop-blur-md border-t border-border">
@@ -408,7 +408,7 @@ export function Navbar() {
 
           <ThemeToggle />
 
-          <NotificationBell variant="desktop" />
+          <NotificationBell variant="desktop" userId={user?.id ?? null} />
 
           {(deferredPrompt || (isIOS && !isStandalone)) && (
             <button

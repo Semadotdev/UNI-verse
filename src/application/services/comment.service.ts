@@ -119,6 +119,16 @@ export class CommentService {
     const viewer = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
     if (comment.authorId !== userId && viewer?.role !== 'admin') throw new ForbiddenError();
 
+    if (comment.authorId !== userId) {
+      await this.notificationService.onContentRemoved(
+        comment.authorId,
+        userId,
+        'comment_removed',
+        comment.body,
+        comment.postId
+      );
+    }
+
     await prisma.comment.delete({ where: { id: commentId } });
     logger.info(`Comment deleted: ${commentId}`);
   }

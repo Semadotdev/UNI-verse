@@ -13,6 +13,7 @@
     "db:reset": "node scripts/db-guard.mjs migrate reset",
     "db:studio": "prisma studio",
     "db:backup": "node scripts/backup-db.mjs",
+    "db:grant-admin": "node scripts/grant-admin.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"

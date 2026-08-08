@@ -1,6 +1,6 @@
 import { prisma } from '@/infrastructure/database/prisma-client';
 import type { PaginatedResult } from '@/domain/types/api';
-import { ForbiddenError } from '@/shared/errors/forbidden-error';
+import { requireAdmin } from '@/lib/admin';
 import { createLogger } from '@/shared/utils/logger';
 
 const logger = createLogger('ReportService');
@@ -105,7 +105,6 @@ export class ReportService {
   }
 
   private async assertAdmin(userId: string): Promise<void> {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (user?.role !== 'admin') throw new ForbiddenError();
+    await requireAdmin(userId);
   }
 }

@@ -189,6 +189,10 @@ export class PostService {
     const viewer = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
     if (post.authorId !== userId && viewer?.role !== 'admin') throw new Error('Forbidden');
 
+    if (post.authorId !== userId) {
+      await this.notificationService.onContentRemoved(post.authorId, userId, 'post_removed', post.body);
+    }
+
     await prisma.post.delete({ where: { id: postId } });
     await this.uploadService.deleteImages(post.images.map((img) => img.url));
     logger.info(`Post deleted: ${postId}`);
