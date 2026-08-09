@@ -7,6 +7,12 @@ export interface FeatureNotification {
 
 export const FEATURE_NOTIFICATIONS: FeatureNotification[] = [
   {
+    id: "leaderboard",
+    title: "Leaderboard",
+    description: "See who posts the most and who reads the most manga in the new Leaderboard.",
+    date: "Aug 2026",
+  },
+  {
     id: "animated-profile-themes",
     title: "Animated profile themes",
     description: "Six premium animated themes — Aurora, Stardust, Embers, Ocean Waves, Neon Pulse, and Digital Rain — animate your profile and live-preview in the shop.",

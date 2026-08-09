@@ -7,34 +7,34 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  username      String?   @unique
-  name          String?
-  avatarUrl     String?
-  bio           String?
-  birthDate     DateTime?
-  showNsfw      Boolean   @default(true)
-  coins         Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  email     String    @unique
+  username  String?   @unique
+  name      String?
+  avatarUrl String?
+  bio       String?
+  birthDate DateTime?
+  showNsfw  Boolean   @default(true)
+  coins     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  library       Library[]
-  folders       Folder[]
-  history       ReadingHistory[]
-  readChapters  ReadChapter[]
-  settings      UserSettings?
-  mangaSettings MangaSettings[]
-  role           String           @default("user")
-  posts          Post[]
-  likes          Like[]
-  comments       Comment[]
-  postReports    PostReport[]
-  commentReports CommentReport[]
-  friends        Friend[] @relation("Friendships")
-  friendOf       Friend[] @relation("FriendOf")
-  notifications  Notification[] @relation("NotificationsReceived")
-  sentActivity   Notification[] @relation("NotificationsSent")
+  library         Library[]
+  folders         Folder[]
+  history         ReadingHistory[]
+  readChapters    ReadChapter[]
+  settings        UserSettings?
+  mangaSettings   MangaSettings[]
+  role            String           @default("user")
+  posts           Post[]
+  likes           Like[]
+  comments        Comment[]
+  postReports     PostReport[]
+  commentReports  CommentReport[]
+  friends         Friend[]         @relation("Friendships")
+  friendOf        Friend[]         @relation("FriendOf")
+  notifications   Notification[]   @relation("NotificationsReceived")
+  sentActivity    Notification[]   @relation("NotificationsSent")
   purchasedThemes PurchasedTheme[]
 }
 
@@ -44,7 +44,7 @@ model PurchasedTheme {
   themeId     String
   purchasedAt DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, themeId])
   @@index([userId])
@@ -56,8 +56,8 @@ model Friend {
   friendId  String
   createdAt DateTime @default(now())
 
-  user      User     @relation("Friendships", fields: [userId], references: [id], onDelete: Cascade)
-  friend    User     @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
+  user   User @relation("Friendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendOf", fields: [friendId], references: [id], onDelete: Cascade)
 
   @@unique([userId, friendId])
   @@index([friendId])
@@ -70,10 +70,10 @@ model Folder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     Library[]
-  shared    SharedFolder?
-  posts     Post[]
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items  Library[]
+  shared SharedFolder?
+  posts  Post[]
 
   @@unique([userId, name])
   @@index([userId])
@@ -86,25 +86,25 @@ model SharedFolder {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
 }
 
 model Library {
-  id          String   @id @default(cuid())
-  userId      String
-  providerId  String
-  mangaId     String
-  title       String
-  coverUrl    String
-  status      String   @default("unknown")
-  categories  String[] @default([])
-  folderId    String?
-  addedAt     DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  providerId String
+  mangaId    String
+  title      String
+  coverUrl   String
+  status     String   @default("unknown")
+  categories String[] @default([])
+  folderId   String?
+  addedAt    DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folder      Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  bookmarks   Bookmark[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  bookmarks Bookmark[]
 
   @@unique([userId, providerId, mangaId])
   @@index([userId])
@@ -112,139 +112,139 @@ model Library {
 }
 
 model Bookmark {
-  id          String   @id @default(cuid())
-  libraryId   String
-  chapterId   String
-  chapterNum  Float
-  title       String?
-  read        Boolean  @default(false)
-  progress    Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  libraryId  String
+  chapterId  String
+  chapterNum Float
+  title      String?
+  read       Boolean  @default(false)
+  progress   Float    @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  library     Library  @relation(fields: [libraryId], references: [id], onDelete: Cascade)
+  library Library @relation(fields: [libraryId], references: [id], onDelete: Cascade)
 
   @@unique([libraryId, chapterId])
   @@index([libraryId])
 }
 
 model ReadingHistory {
-  id          String   @id @default(cuid())
-  userId      String
-  providerId  String
-  mangaId     String
-  chapterId   String
-  chapterNum  Float
-  title       String?
-  coverUrl    String?
-  progress    Float    @default(0)
-  completed   Boolean  @default(false)
-  readAt      DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  providerId String
+  mangaId    String
+  chapterId  String
+  chapterNum Float
+  title      String?
+  coverUrl   String?
+  progress   Float    @default(0)
+  completed  Boolean  @default(false)
+  readAt     DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, providerId, mangaId])
   @@index([userId, readAt])
 }
 
 model ReadChapter {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   providerId String
   mangaId    String
   chapterId  String
-  readAt     DateTime @default(now())
+  readAt     DateTime  @default(now())
   rewardedAt DateTime?
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, providerId, mangaId, chapterId])
   @@index([userId, providerId, mangaId])
 }
 
 model UserSettings {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  theme           String   @default("dark")
-  profileThemeId  String?
-  readerMode      String   @default("paged")
+  id               String  @id @default(cuid())
+  userId           String  @unique
+  theme            String  @default("dark")
+  profileThemeId   String?
+  readerMode       String  @default("paged")
   readingDirection String  @default("ltr")
-  backgroundColor String   @default("#000000")
-  brightness      Float    @default(1.0)
-  padding         Float    @default(0)
-  language        String   @default("en")
+  backgroundColor  String  @default("#000000")
+  brightness       Float   @default(1.0)
+  padding          Float   @default(0)
+  language         String  @default("en")
 
-  readingMode      String   @default("paged")
-  scaleType        String   @default("contain")
+  readingMode       String  @default("paged")
+  scaleType         String  @default("contain")
   zoomStartPosition String  @default("center")
-  showPageNumber   Boolean  @default(true)
-  tapZoneLayout    String   @default("disabled")
-  cropBorders      Boolean  @default(false)
-  sidePadding      Float    @default(0)
-  doubleTapZoom    Boolean  @default(true)
-  splitWidePages   Boolean  @default(true)
-  pagePreloadCount Int      @default(2)
+  showPageNumber    Boolean @default(true)
+  tapZoneLayout     String  @default("disabled")
+  cropBorders       Boolean @default(false)
+  sidePadding       Float   @default(0)
+  doubleTapZoom     Boolean @default(true)
+  splitWidePages    Boolean @default(true)
+  pagePreloadCount  Int     @default(2)
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model MangaSettings {
-  id              String   @id @default(cuid())
-  userId          String
-  providerId      String
-  mangaId         String
-  readingMode     String?
-  scaleType       String?
+  id               String   @id @default(cuid())
+  userId           String
+  providerId       String
+  mangaId          String
+  readingMode      String?
+  scaleType        String?
   readingDirection String?
-  backgroundColor String?
-  brightness      Float?
-  cropBorders     Boolean?
-  sidePadding     Float?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  backgroundColor  String?
+  brightness       Float?
+  cropBorders      Boolean?
+  sidePadding      Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, providerId, mangaId])
   @@index([userId])
 }
 
 model Provider {
-  id              String   @id @default(cuid())
-  packageName     String   @unique
-  name            String
-  providerId      String
-  version         String
-  lang            String   @default("en")
-  description     String?
-  icon            String?
-  nsfw            Boolean  @default(false)
-  enabled         Boolean  @default(true)
-  hasSearch       Boolean  @default(true)
-  hasPopular      Boolean  @default(false)
-  hasLatest       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String   @id @default(cuid())
+  packageName String   @unique
+  name        String
+  providerId  String
+  version     String
+  lang        String   @default("en")
+  description String?
+  icon        String?
+  nsfw        Boolean  @default(false)
+  enabled     Boolean  @default(true)
+  hasSearch   Boolean  @default(true)
+  hasPopular  Boolean  @default(false)
+  hasLatest   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([enabled])
 }
 
 model Post {
-  id        String    @id @default(cuid())
-  authorId  String
-  body      String
-  folderId  String?
-  nsfw         Boolean   @default(false)
-  nsfwExplicit Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  authorId     String
+  body         String
+  folderId     String?
+  nsfw         Boolean  @default(false)
+  nsfwExplicit Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  images    PostImage[]
-  likes     Like[]
-  comments  Comment[]
-  reports   PostReport[]
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  folder        Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  images        PostImage[]
+  likes         Like[]
+  comments      Comment[]
+  reports       PostReport[]
   notifications Notification[]
 
   @@index([authorId, createdAt])
@@ -256,7 +256,7 @@ model PostImage {
   url      String
   position Int    @default(0)
 
-  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
 }
@@ -268,8 +268,8 @@ model Like {
   type      String   @default("like")
   createdAt DateTime @default(now())
 
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([postId, userId])
   @@index([postId])
@@ -284,11 +284,11 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent     Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies    Comment[] @relation("CommentReplies")
-  reports    CommentReport[]
+  post          Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        Comment?        @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[]       @relation("CommentReplies")
+  reports       CommentReport[]
   notifications Notification[]
 
   @@index([postId, createdAt])
@@ -302,8 +302,8 @@ model PostReport {
   reason     String?
   createdAt  DateTime @default(now())
 
-  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@unique([postId, reporterId])
   @@index([createdAt])
@@ -316,8 +316,8 @@ model CommentReport {
   reason     String?
   createdAt  DateTime @default(now())
 
-  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  comment  Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter User    @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@unique([commentId, reporterId])
   @@index([createdAt])
@@ -334,10 +334,10 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
-  actor     User     @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  actor   User     @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([actorId])
