@@ -7,6 +7,18 @@ export interface FeatureNotification {
 
 export const FEATURE_NOTIFICATIONS: FeatureNotification[] = [
   {
+    id: "animated-profile-themes",
+    title: "Animated profile themes",
+    description: "Six premium animated themes — Aurora, Stardust, Embers, Ocean Waves, Neon Pulse, and Digital Rain — animate your profile and live-preview in the shop.",
+    date: "Aug 2026",
+  },
+  {
+    id: "profile-themes-shop",
+    title: "Profile themes shop",
+    description: "Earn coins for completing chapters and spend them on profile themes in the new Themes shop.",
+    date: "Aug 2026",
+  },
+  {
     id: "theme-switcher",
     title: "Theme switcher",
     description: "Switch between Dark, Light, or System themes right from the navbar.",
