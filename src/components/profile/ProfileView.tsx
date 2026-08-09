@@ -327,6 +327,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         <ProfileThemeModal
           open={themeModalOpen}
           onClose={() => setThemeModalOpen(false)}
+          profile={profile}
           initialCoins={coins}
           onCoinsChange={setCoins}
           onApplied={(themeId) => setActiveTheme(resolveProfileTheme(themeId))}
