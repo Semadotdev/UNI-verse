@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Check, Coins } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { ApiClient } from "@/lib/api-client";
+import { ProfileThemeBackground } from "@/components/profile/ProfileThemeBackground";
 import { useToast } from "@/contexts/ToastContext";
 import { cn } from "@/lib/utils";
 import { DEFAULT_THEME_ID } from "@/domain/constants/profile-themes";
@@ -124,11 +125,13 @@ export function ProfileThemeModal({
                 className="flex items-center gap-3 rounded-xl border border-border bg-bg-overlay p-3"
               >
                 <div
-                  className="h-12 w-12 shrink-0 rounded-lg border border-border"
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border"
                   style={{
                     background: `linear-gradient(135deg, ${t.colors.background[0]}, ${t.colors.background[1]})`,
                   }}
-                />
+                >
+                  <ProfileThemeBackground theme={t} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-zinc-100">{t.name}</p>
                   <p className="truncate text-xs text-muted">{t.description}</p>

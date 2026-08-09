@@ -10,6 +10,7 @@ import { PostComposer } from "@/components/posts/PostComposer";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
 import { Coins } from "lucide-react";
 import { ProfileThemeModal, type ThemesState } from "@/components/profile/ProfileThemeModal";
+import { ProfileThemeBackground } from "@/components/profile/ProfileThemeBackground";
 import {
   DEFAULT_THEME_ID,
   resolveProfileTheme,
@@ -184,12 +185,13 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
       <div
         className={
           themed
-            ? "rounded-2xl border border-border p-5"
+            ? "relative overflow-hidden rounded-2xl border border-border p-5"
             : "rounded-2xl border border-border bg-bg-raised p-5"
         }
         style={themeBg}
       >
-        <div className="flex items-start gap-4">
+        <ProfileThemeBackground theme={activeTheme} />
+        <div className="relative flex items-start gap-4">
           {profile.avatarUrl ? (
             <img
               src={profile.avatarUrl}
@@ -223,7 +225,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+        <div className="relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
           {isOwn ? (
             <>
               <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300">
