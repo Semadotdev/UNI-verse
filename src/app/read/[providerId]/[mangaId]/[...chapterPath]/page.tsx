@@ -11,6 +11,7 @@ import { LongStripReader } from "@/components/reader/LongStripReader";
 import { PagedReader } from "@/components/reader/PagedReader";
 import { ReaderSettingsDrawer } from "@/components/reader/ReaderSettingsDrawer";
 import { Slider } from "@/components/ui/Slider";
+import { useToast } from "@/contexts/ToastContext";
 import { ApiClient } from "@/lib/api-client";
 import type { Chapter } from "@/domain/entities/chapter";
 import type { Manga } from "@/domain/entities/manga";
@@ -20,6 +21,7 @@ const SWIPE_HINT_KEY = "uni-verse-swipe-hint-shown";
 export default function ReaderPage() {
   const params = useParams();
   const router = useRouter();
+  const { addToast } = useToast();
   const providerId = params.providerId as string;
   const mangaId = params.mangaId as string;
   const chapterId = (params.chapterPath as string[]).join("/");
@@ -98,7 +100,7 @@ export default function ReaderPage() {
     progressTimer.current = setTimeout(() => {
       const progress = ((currentPage + 1) / pages.length) * 100;
       const completed = currentPage >= pages.length - 1;
-      ApiClient.post("/api/history", {
+      ApiClient.post<{ rewarded?: boolean }>("/api/history", {
         providerId,
         mangaId,
         chapterId,
@@ -107,7 +109,11 @@ export default function ReaderPage() {
         coverUrl: mangaDetails.cover,
         progress,
         completed,
-      }).catch(() => {});
+      })
+        .then((res) => {
+          if (res.rewarded) addToast("You earned a coin!", "success");
+        })
+        .catch(() => {});
     }, 2000);
     return () => { if (progressTimer.current) clearTimeout(progressTimer.current); };
   }, [currentPage, pages.length, currentChapter, mangaDetails, providerId, mangaId, chapterId]);
