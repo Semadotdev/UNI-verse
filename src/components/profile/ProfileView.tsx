@@ -8,6 +8,13 @@ import { useLibrary } from "@/contexts/LibraryContext";
 import { PostCard } from "@/components/posts/PostCard";
 import { PostComposer } from "@/components/posts/PostComposer";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
+import { Coins } from "lucide-react";
+import { ProfileThemeModal, type ThemesState } from "@/components/profile/ProfileThemeModal";
+import {
+  DEFAULT_THEME_ID,
+  resolveProfileTheme,
+  type ProfileTheme,
+} from "@/domain/constants/profile-themes";
 import { FriendSearch } from "@/components/profile/FriendSearch";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/posts/ConfirmModal";
@@ -41,6 +48,11 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
   const [friendsModalOpen, setFriendsModalOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editing, setEditing] = useState<Post | null>(null);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
+  const [coins, setCoins] = useState(0);
+  const [activeTheme, setActiveTheme] = useState<ProfileTheme>(() =>
+    resolveProfileTheme(profile.theme?.id)
+  );
 
   const username = profile.username ?? "";
 
@@ -68,6 +80,16 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
     setFriendCount(profile.friendCount ?? 0);
     setPostCount(profile.postCount);
   }, [profile]);
+
+  useEffect(() => {
+    if (!isOwn) return;
+    ApiClient.get<ThemesState>("/api/themes")
+      .then((s) => {
+        setCoins(s.coins);
+        setActiveTheme(resolveProfileTheme(s.activeThemeId));
+      })
+      .catch(() => {});
+  }, [isOwn]);
 
   const handleSaved = (post: Post) => {
     setPosts((prev) => {
@@ -147,22 +169,40 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
     ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })
     : "";
 
+  const themed = activeTheme.id !== DEFAULT_THEME_ID;
+  const themeBg = themed
+    ? { background: `linear-gradient(135deg, ${activeTheme.colors.background[0]}, ${activeTheme.colors.background[1]})` }
+    : undefined;
+  const themeAccent = themed ? { borderColor: activeTheme.colors.accent } : undefined;
+  const themeText = themed ? { color: activeTheme.colors.accent } : undefined;
+  const themeOutline = themed
+    ? { borderColor: activeTheme.colors.accent, color: activeTheme.colors.accent }
+    : undefined;
+
   return (
     <div>
-      <div className="rounded-2xl border border-border bg-bg-raised p-5">
+      <div
+        className={
+          themed
+            ? "rounded-2xl border border-border p-5"
+            : "rounded-2xl border border-border bg-bg-raised p-5"
+        }
+        style={themeBg}
+      >
         <div className="flex items-start gap-4">
           {profile.avatarUrl ? (
             <img
               src={profile.avatarUrl}
               alt=""
               className="w-24 h-24 rounded-full object-cover border-2 border-border bg-bg-overlay shrink-0"
+              style={themeAccent}
             />
           ) : (
             <div className="w-24 h-24 rounded-full bg-primary/30 shrink-0" />
           )}
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-zinc-100 break-words">
+            <h1 className="text-xl font-bold text-zinc-100 break-words" style={themeText}>
               {profile.name ?? profile.username ?? "User"}
             </h1>
             {profile.username && (
@@ -186,20 +226,34 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
           {isOwn ? (
             <>
+              <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300">
+                <Coins className="h-4 w-4 text-yellow-400" />
+                {coins}
+              </span>
               <button
                 onClick={() => setSearchOpen(true)}
+                style={themeOutline}
                 className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
               >
                 Search
               </button>
               <button
                 onClick={openFriends}
+                style={themeOutline}
                 className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
               >
                 Friends
               </button>
               <button
+                onClick={() => setThemeModalOpen(true)}
+                style={themeOutline}
+                className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
+              >
+                Themes
+              </button>
+              <button
                 onClick={onEdit}
+                style={themeOutline}
                 className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
               >
                 Edit profile
@@ -266,6 +320,16 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
       )}
 
       {searchOpen && <FriendSearch onClose={() => setSearchOpen(false)} />}
+
+      {isOwn && (
+        <ProfileThemeModal
+          open={themeModalOpen}
+          onClose={() => setThemeModalOpen(false)}
+          initialCoins={coins}
+          onCoinsChange={setCoins}
+          onApplied={(themeId) => setActiveTheme(resolveProfileTheme(themeId))}
+        />
+      )}
 
       <PostComposer
         key={editing?.id ?? "profile-edit"}
