@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { prisma } from '@/infrastructure/database/prisma-client';
 import { FriendService } from '@/application/services/friend.service';
+import { resolveProfileTheme } from '@/domain/constants/profile-themes';
 import { successResponse, errorResponse } from '@/domain/types/api';
 
 const friendService = new FriendService();
@@ -23,6 +24,7 @@ export async function GET(
         avatarUrl: true,
         bio: true,
         createdAt: true,
+        settings: { select: { profileThemeId: true } },
         _count: { select: { posts: true } },
       },
     });
@@ -45,6 +47,7 @@ export async function GET(
         postCount: user._count.posts,
         friendCount,
         isFriend,
+        theme: resolveProfileTheme(user.settings?.profileThemeId),
       })
     );
   } catch (error) {

@@ -1,3 +1,5 @@
+import type { ProfileTheme } from "@/domain/constants/profile-themes";
+
 export interface ProfileData {
   username: string | null;
   name: string | null;
@@ -7,6 +9,7 @@ export interface ProfileData {
   postCount: number;
   friendCount?: number;
   isFriend?: boolean;
+  theme?: ProfileTheme;
 }
 
 export interface Viewer {
