@@ -15,6 +15,7 @@ model User {
   bio           String?
   birthDate     DateTime?
   showNsfw      Boolean   @default(true)
+  coins         Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -34,6 +35,19 @@ model User {
   friendOf       Friend[] @relation("FriendOf")
   notifications  Notification[] @relation("NotificationsReceived")
   sentActivity   Notification[] @relation("NotificationsSent")
+  purchasedThemes PurchasedTheme[]
+}
+
+model PurchasedTheme {
+  id          String   @id @default(cuid())
+  userId      String
+  themeId     String
+  purchasedAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, themeId])
+  @@index([userId])
 }
 
 model Friend {
@@ -140,6 +154,7 @@ model ReadChapter {
   mangaId    String
   chapterId  String
   readAt     DateTime @default(now())
+  rewardedAt DateTime?
 
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -151,6 +166,7 @@ model UserSettings {
   id              String   @id @default(cuid())
   userId          String   @unique
   theme           String   @default("dark")
+  profileThemeId  String?
   readerMode      String   @default("paged")
   readingDirection String  @default("ltr")
   backgroundColor String   @default("#000000")
