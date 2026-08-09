@@ -8,7 +8,7 @@ import { useLibrary } from "@/contexts/LibraryContext";
 import { PostCard } from "@/components/posts/PostCard";
 import { PostComposer } from "@/components/posts/PostComposer";
 import { PostSkeleton } from "@/components/posts/PostSkeleton";
-import { Coins } from "lucide-react";
+import { Coins, Settings } from "lucide-react";
 import { ProfileThemeModal, type ThemesState } from "@/components/profile/ProfileThemeModal";
 import { ProfileThemeBackground } from "@/components/profile/ProfileThemeBackground";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/domain/constants/profile-themes";
 import { FriendSearch } from "@/components/profile/FriendSearch";
 import { Modal } from "@/components/ui/Modal";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { ConfirmModal } from "@/components/posts/ConfirmModal";
 import type { Post } from "@/domain/entities/post";
 import type { FriendSummary } from "@/domain/entities/friend";
@@ -182,16 +183,37 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
 
   return (
     <div>
-      <div
-        className={
-          themed
-            ? "relative overflow-hidden rounded-2xl border border-border p-5"
-            : "rounded-2xl border border-border bg-bg-raised p-5"
-        }
-        style={themeBg}
-      >
-        <ProfileThemeBackground theme={activeTheme} />
-        <div className="relative flex items-start gap-4">
+      <div className="relative">
+        {isOwn && (
+          <div className="absolute top-3 right-3 z-10">
+            <Dropdown
+              align="right"
+              trigger={
+                <button
+                  type="button"
+                  className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+                  aria-label="Settings"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+              }
+              items={[
+                { label: "Edit profile", onClick: onEdit },
+                { label: "Themes", onClick: () => setThemeModalOpen(true) },
+              ]}
+            />
+          </div>
+        )}
+        <div
+          className={
+            themed
+              ? "relative overflow-hidden rounded-2xl border border-border p-5"
+              : "rounded-2xl border border-border bg-bg-raised p-5"
+          }
+          style={themeBg}
+        >
+          <ProfileThemeBackground theme={activeTheme} />
+          <div className="relative flex items-start gap-4">
           {profile.avatarUrl ? (
             <img
               src={profile.avatarUrl}
@@ -224,8 +246,9 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+      <div className="relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
           {isOwn ? (
             <>
               <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300">
@@ -245,20 +268,6 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
                 className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
               >
                 Friends
-              </button>
-              <button
-                onClick={() => setThemeModalOpen(true)}
-                style={themeOutline}
-                className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
-              >
-                Themes
-              </button>
-              <button
-                onClick={onEdit}
-                style={themeOutline}
-                className="px-4 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300 hover:border-primary/50 hover:text-zinc-100 transition-all"
-              >
-                Edit profile
               </button>
             </>
           ) : isFriend ? (
