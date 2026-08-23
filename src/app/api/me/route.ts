@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/auth';
 import { isAdult } from '@/lib/age';
 import { prisma } from '@/infrastructure/database/prisma-client';
+import { AccountService } from '@/application/services/account.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
 
 const MAX_BIO_LENGTH = 200;
@@ -117,6 +118,22 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       errorResponse('AUTH_ERROR', error instanceof Error ? error.message : 'Failed to update user'),
       { status: 401 }
+    );
+  }
+}
+
+export async function DELETE() {
+  try {
+    const userId = await getAuthUserId();
+    await new AccountService().deleteAccount(userId);
+    return NextResponse.json(successResponse({ deleted: true }));
+  } catch (error) {
+    return NextResponse.json(
+      errorResponse(
+        'ACCOUNT_DELETE_ERROR',
+        error instanceof Error ? error.message : 'Failed to delete account'
+      ),
+      { status: 500 }
     );
   }
 }

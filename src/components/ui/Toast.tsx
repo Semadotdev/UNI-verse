@@ -3,10 +3,10 @@
 import { useToast, ToastVariant } from "@/contexts/ToastContext";
 
 const variantStyles: Record<ToastVariant, string> = {
-  success: "bg-green-500/10 border-green-500/20 text-green-400",
-  error: "bg-red-500/10 border-red-500/20 text-red-400",
-  warning: "bg-yellow-500/10 border-yellow-500/20 text-yellow-400",
-  info: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+  success: "bg-zinc-900 border-l-4 border-l-green-500 text-zinc-100",
+  error: "bg-zinc-900 border-l-4 border-l-red-500 text-zinc-100",
+  warning: "bg-zinc-900 border-l-4 border-l-yellow-400 text-zinc-100",
+  info: "bg-zinc-900 border-l-4 border-l-blue-500 text-zinc-100",
 };
 
 export function ToastContainer() {

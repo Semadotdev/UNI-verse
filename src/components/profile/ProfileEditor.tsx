@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ApiClient } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmModal } from "@/components/posts/ConfirmModal";
 import type { ProfileData } from "@/components/profile/types";
 
 const MAX_BIO_LENGTH = 200;
@@ -27,12 +30,14 @@ interface ProfileEditorProps {
 
 export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps) {
   const { addToast } = useToast();
+  const router = useRouter();
   const [name, setName] = useState(profile.name ?? "");
   const [username, setUsername] = useState(profile.username ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const pickFile = (file: File | null) => {
     if (!file) return;
@@ -84,6 +89,18 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
       addToast(e instanceof Error ? e.message : "Failed to update profile", "error");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      await ApiClient.delete("/api/me");
+      await getSupabaseBrowserClient().auth.signOut();
+      addToast("Account deleted", "success");
+      router.push("/");
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : "Failed to delete account", "error");
+      throw e;
     }
   };
 
@@ -185,6 +202,31 @@ export function ProfileEditor({ profile, onClose, onSaved }: ProfileEditorProps)
           {bio.length}/{MAX_BIO_LENGTH}
         </p>
       </div>
+
+      <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+        <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-1">
+          Danger Zone
+        </p>
+        <p className="text-sm text-muted mb-3">
+          Permanently delete your account, library, history, and posts. This cannot be undone.
+        </p>
+        <button
+          onClick={() => setConfirmDeleteOpen(true)}
+          className="px-4 py-2 text-sm rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          Delete Account
+        </button>
+      </div>
+
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        title="Delete account"
+        message="This permanently removes your account and all associated data. This action cannot be undone."
+        confirmLabel="Delete forever"
+        confirmText="DELETE"
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={deleteAccount}
+      />
     </Modal>
   );
 }
