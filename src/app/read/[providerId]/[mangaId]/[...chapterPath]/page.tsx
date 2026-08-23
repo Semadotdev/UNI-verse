@@ -13,6 +13,7 @@ import { ReaderSettingsDrawer } from "@/components/reader/ReaderSettingsDrawer";
 import { Slider } from "@/components/ui/Slider";
 import { useToast } from "@/contexts/ToastContext";
 import { ApiClient } from "@/lib/api-client";
+import { computeReaderProgress } from "@/lib/reader-progress";
 import type { Chapter } from "@/domain/entities/chapter";
 import type { Manga } from "@/domain/entities/manga";
 
@@ -92,31 +93,42 @@ export default function ReaderPage() {
     }).catch(() => {});
   }, [providerId, mangaId, chapterId, currentChapter, mangaDetails]);
 
-  // Update progress on page change (debounced)
+  // Update progress on page change (debounced); chapter completion posts immediately
   const progressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const completionPostedForRef = useRef<string | null>(null);
   useEffect(() => {
     if (!currentChapter || !mangaDetails || pages.length === 0) return;
-    if (progressTimer.current) clearTimeout(progressTimer.current);
-    progressTimer.current = setTimeout(() => {
-      const progress = ((currentPage + 1) / pages.length) * 100;
-      const completed = currentPage >= pages.length - 1;
-      ApiClient.post<{ rewarded?: boolean }>("/api/history", {
-        providerId,
-        mangaId,
-        chapterId,
-        chapterNum: currentChapter.number,
-        title: mangaDetails.title,
-        coverUrl: mangaDetails.cover,
-        progress,
-        completed,
-      })
+    const { progress, completed } = computeReaderProgress(currentPage, pages.length);
+    const postProgress = (keepalive: boolean) => {
+      ApiClient.post<{ rewarded?: boolean }>(
+        "/api/history",
+        {
+          providerId,
+          mangaId,
+          chapterId,
+          chapterNum: currentChapter.number,
+          title: mangaDetails.title,
+          coverUrl: mangaDetails.cover,
+          progress,
+          completed,
+        },
+        { keepalive }
+      )
         .then((res) => {
           if (res.rewarded) addToast("You earned a coin!", "success");
         })
         .catch(() => {});
-    }, 2000);
+    };
+    if (completed) {
+      if (completionPostedForRef.current === chapterId) return;
+      completionPostedForRef.current = chapterId;
+      postProgress(true);
+      return;
+    }
+    if (progressTimer.current) clearTimeout(progressTimer.current);
+    progressTimer.current = setTimeout(() => postProgress(false), 2000);
     return () => { if (progressTimer.current) clearTimeout(progressTimer.current); };
-  }, [currentPage, pages.length, currentChapter, mangaDetails, providerId, mangaId, chapterId]);
+  }, [currentPage, pages.length, currentChapter, mangaDetails, providerId, mangaId, chapterId, addToast]);
 
   const showToolbars = useCallback(() => {
     setToolbarsVisible(true);
@@ -333,7 +345,7 @@ export default function ReaderPage() {
     );
   }
 
-  const progress = ((currentPage + 1) / pages.length) * 100;
+  const progress = computeReaderProgress(currentPage, pages.length).progress;
   const chapterLabel = currentChapter
     ? (currentChapter.title || `Ch. ${currentChapter.number}`)
     : null;

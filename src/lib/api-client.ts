@@ -53,10 +53,11 @@ export class ApiClient {
     return this.requestWithMeta<T>(url, options);
   }
 
-  static async post<T>(url: string, body?: unknown): Promise<T> {
+  static async post<T>(url: string, body?: unknown, options?: RequestInit): Promise<T> {
     return this.request<T>(url, {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
+      ...options,
     });
   }
 
