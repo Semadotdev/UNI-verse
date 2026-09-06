@@ -18,6 +18,8 @@ vi.mock("@supabase/ssr", () => ({
 
 import { middleware } from "./middleware";
 
+type MockResponse = { kind: string; url: URL };
+
 function makeRequest(pathname: string): NextRequest {
   const nextUrl = {
     pathname,
@@ -28,6 +30,10 @@ function makeRequest(pathname: string): NextRequest {
     cookies: { getAll: () => [], set: () => {} },
     headers: new Headers(),
   } as unknown as NextRequest;
+}
+
+async function run(pathname: string): Promise<MockResponse> {
+  return (await middleware(makeRequest(pathname))) as unknown as MockResponse;
 }
 
 describe("middleware", () => {
@@ -43,29 +49,29 @@ describe("middleware", () => {
   });
 
   it("skips Supabase getUser for API routes", async () => {
-    const res = await middleware(makeRequest("/api/posts?page=1"));
+    const res = await run("/api/posts?page=1");
     expect(getUserMock).not.toHaveBeenCalled();
     expect(res.kind).toBe("next");
   });
 
   it("runs getUser for public page routes", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    const res = await middleware(makeRequest("/login"));
+    const res = await run("/login");
     expect(getUserMock).toHaveBeenCalled();
     expect(res.kind).toBe("next");
   });
 
   it("redirects unauthenticated users on protected pages", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
-    const res = await middleware(makeRequest("/home"));
+    const res = await run("/home");
     expect(res.kind).toBe("redirect");
-    expect((res as { url: URL }).url.pathname).toBe("/login");
+    expect(res.url.pathname).toBe("/login");
   });
 
   it("redirects authenticated users away from public routes", async () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "u1" } } });
-    const res = await middleware(makeRequest("/login"));
+    const res = await run("/login");
     expect(res.kind).toBe("redirect");
-    expect((res as { url: URL }).url.pathname).toBe("/");
+    expect(res.url.pathname).toBe("/");
   });
 });
