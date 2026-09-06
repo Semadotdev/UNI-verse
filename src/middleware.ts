@@ -5,6 +5,19 @@ const publicRoutes = ['/login', '/register', '/api/auth'];
 const alwaysPublicRoutes = ['/legal', '/s'];
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isApiRoute = pathname.startsWith('/api/');
+  const isPublicRoute = publicRoutes.some((route) =>
+    pathname === route || pathname.startsWith(route + '/')
+  );
+  const isAlwaysPublic = alwaysPublicRoutes.some((route) =>
+    pathname === route || pathname.startsWith(route + '/')
+  );
+
+  if (isApiRoute) {
+    return NextResponse.next();
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -43,22 +56,13 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
-  const isPublicRoute = publicRoutes.some((route) =>
-    pathname === route || pathname.startsWith(route + '/')
-  );
-  const isAlwaysPublic = alwaysPublicRoutes.some((route) =>
-    pathname === route || pathname.startsWith(route + '/')
-  );
-  const isApiRoute = pathname.startsWith('/api/');
-
-  if (!user && !isPublicRoute && !isAlwaysPublic && !isApiRoute) {
+  if (!user && !isPublicRoute && !isAlwaysPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
-  if (user && isPublicRoute && !isAlwaysPublic && !isApiRoute) {
+  if (user && isPublicRoute && !isAlwaysPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
