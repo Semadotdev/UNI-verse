@@ -756,18 +756,21 @@ describe("getOrFetch", () => {
     findUniqueMock.mockResolvedValue(null);
     createMock.mockResolvedValue({});
 
-    let resolveFn: (v: { id: string }) => void = () => {};
-    const fetchFn = vi.fn(() => new Promise<{ id: string }>((resolve) => {
-      resolveFn = resolve;
-    }));
+    let calls = 0;
+    const fetchFn = vi.fn(async () => {
+      calls++;
+      return { id: "m1" };
+    });
 
-    const first = getOrFetch("webtoons", "det:m1", 60000, fetchFn);
-    const second = getOrFetch("webtoons", "det:m1", 60000, fetchFn);
-    resolveFn({ id: "m1" });
+    const [a, b] = await Promise.all([
+      getOrFetch("webtoons", "det:m1", 60000, fetchFn),
+      getOrFetch("webtoons", "det:m1", 60000, fetchFn),
+    ]);
 
-    await expect(first).resolves.toEqual({ id: "m1" });
-    await expect(second).resolves.toEqual({ id: "m1" });
-    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(a).toEqual({ id: "m1" });
+    expect(b).toEqual({ id: "m1" });
+    expect(calls).toBe(1);
+    expect(createMock).toHaveBeenCalledTimes(1);
   });
 
   it("propagates fetcher errors without caching", async () => {

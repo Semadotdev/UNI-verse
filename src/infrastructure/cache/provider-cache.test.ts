@@ -18,7 +18,7 @@ vi.mock("@/infrastructure/database/prisma-client", () => ({
   },
 }));
 
-import { getOrFetch } from "./provider-cache";
+import { getOrFetch, resetProviderCache } from "./provider-cache";
 
 const NOW = new Date("2026-09-06T00:00:00Z");
 const FUTURE = new Date("2026-09-06T06:00:00Z");
@@ -28,6 +28,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
+  resetProviderCache();
 });
 
 describe("getOrFetch", () => {
@@ -81,44 +82,88 @@ describe("getOrFetch", () => {
     });
     updateMock.mockResolvedValue({});
 
-    const result = await getOrFetch("webtoons", "det:m1", 60000, async () => ({ id: "fresh" }));
+    const fetchFn = vi.fn().mockResolvedValue({ id: "new" });
+    const result = await getOrFetch("webtoons", "det:m1", 60000, fetchFn);
 
-    expect(result).toEqual({ id: "fresh" });
-    expect(updateMock).toHaveBeenCalledTimes(1);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ id: "new" });
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: "c1" },
+      data: expect.objectContaining({
+        payload: { id: "new" },
+        expiresAt: new Date(NOW.getTime() + 60000),
+      }),
+    });
   });
 
-  it("coalesces concurrent calls into a single upstream fetch", async () => {
+  it("coalesces concurrent fetches for the same key", async () => {
     findUniqueMock.mockResolvedValue(null);
     createMock.mockResolvedValue({});
 
     let calls = 0;
-    const fetchFn = async () => {
+    const fetchFn = vi.fn(async () => {
       calls++;
       return { id: "m1" };
-    };
+    });
 
-    const [a, b, c] = await Promise.all([
-      getOrFetch("webtoons", "det:m1", 60000, fetchFn),
+    const [a, b] = await Promise.all([
       getOrFetch("webtoons", "det:m1", 60000, fetchFn),
       getOrFetch("webtoons", "det:m1", 60000, fetchFn),
     ]);
 
     expect(a).toEqual({ id: "m1" });
     expect(b).toEqual({ id: "m1" });
-    expect(c).toEqual({ id: "m1" });
     expect(calls).toBe(1);
+    expect(createMock).toHaveBeenCalledTimes(1);
   });
 
-  it("propagates errors from the fetcher without caching", async () => {
+  it("propagates fetcher errors without caching", async () => {
     findUniqueMock.mockResolvedValue(null);
+    const fetchFn = vi.fn().mockRejectedValue(new Error("upstream down"));
 
-    await expect(
-      getOrFetch("webtoons", "det:m1", 60000, async () => {
-        throw new Error("upstream down");
-      })
-    ).rejects.toThrow("upstream down");
-
+    await expect(getOrFetch("webtoons", "det:m1", 60000, fetchFn)).rejects.toThrow("upstream down");
     expect(createMock).not.toHaveBeenCalled();
-    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("serves a second read from the in-memory L1 cache without touching the DB", async () => {
+    findUniqueMock.mockResolvedValue(null);
+    createMock.mockResolvedValue({});
+    const fetchFn = vi.fn().mockResolvedValue({ id: "m1" });
+
+    const first = await getOrFetch("webtoons", "det:m1", 60000, fetchFn);
+    const second = await getOrFetch("webtoons", "det:m1", 60000, fetchFn);
+
+    expect(first).toEqual({ id: "m1" });
+    expect(second).toEqual({ id: "m1" });
+    expect(findUniqueMock).toHaveBeenCalledTimes(1);
+    expect(createMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refetches from the DB once the L1 window has elapsed", async () => {
+    findUniqueMock.mockResolvedValue({
+      id: "c1",
+      providerId: "webtoons",
+      cacheKey: "det:m1",
+      payload: { id: "old" },
+      fetchedAt: NOW,
+      expiresAt: FUTURE,
+    });
+
+    await getOrFetch("webtoons", "det:m1", 60000, vi.fn().mockRejectedValue(new Error("no fetch")));
+
+    vi.setSystemTime(new Date(NOW.getTime() + 120_000));
+    findUniqueMock.mockResolvedValue({
+      id: "c1",
+      providerId: "webtoons",
+      cacheKey: "det:m1",
+      payload: { id: "fresh" },
+      fetchedAt: NOW,
+      expiresAt: FUTURE,
+    });
+
+    const result = await getOrFetch("webtoons", "det:m1", 60000, vi.fn().mockRejectedValue(new Error("no fetch")));
+
+    expect(result).toEqual({ id: "fresh" });
+    expect(findUniqueMock).toHaveBeenCalledTimes(2);
   });
 });

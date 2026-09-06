@@ -20,6 +20,34 @@ let lastSweep = 0;
 
 const inflight = new Map<string, Promise<unknown>>();
 
+const L1_TTL_MS = 60 * 1000;
+const L1_MAX_ENTRIES = 500;
+const l1Cache = new Map<string, { value: unknown; expiresAt: number }>();
+
+export function resetProviderCache(): void {
+  l1Cache.clear();
+}
+
+function getL1(key: string): unknown | undefined {
+  const entry = l1Cache.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt <= Date.now()) {
+    l1Cache.delete(key);
+    return undefined;
+  }
+  return entry.value;
+}
+
+function setL1(key: string, value: unknown): void {
+  if (l1Cache.size >= L1_MAX_ENTRIES) {
+    const oldest = l1Cache.keys().next().value;
+    if (oldest !== undefined) {
+      l1Cache.delete(oldest);
+    }
+  }
+  l1Cache.set(key, { value, expiresAt: Date.now() + L1_TTL_MS });
+}
+
 function serialize(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(
     JSON.stringify(value, (_key, v) =>
@@ -63,23 +91,31 @@ export async function getOrFetch<T>(
   fetcher: () => Promise<T>
 ): Promise<T> {
   const now = new Date();
+  const l1Key = `${providerId}:${cacheKey}`;
+
+  const l1Value = getL1(l1Key);
+  if (l1Value !== undefined) {
+    return l1Value as T;
+  }
 
   const existing = await prisma.providerCache.findUnique({
     where: { providerId_cacheKey: { providerId, cacheKey } },
   });
 
   if (existing && new Date(existing.expiresAt) > now) {
-    return deserialize<T>(existing.payload);
+    const value = deserialize<T>(existing.payload);
+    setL1(l1Key, value);
+    return value;
   }
 
-  const inflightKey = `${providerId}:${cacheKey}`;
-  const pending = inflight.get(inflightKey);
+  const pending = inflight.get(l1Key);
   if (pending) {
     return (await pending) as T;
   }
 
   const fetchPromise = (async () => {
     const value = await fetcher();
+    setL1(l1Key, value);
     const expiresAt = new Date(now.getTime() + ttlMs);
 
     try {
@@ -95,17 +131,17 @@ export async function getOrFetch<T>(
         void maybeSweep();
       }
     } catch (error) {
-      logger.warn(`Failed to persist provider cache ${inflightKey}`, error);
+      logger.warn(`Failed to persist provider cache ${l1Key}`, error);
     }
 
     return value;
   })();
 
-  inflight.set(inflightKey, fetchPromise);
+  inflight.set(l1Key, fetchPromise);
   try {
     return (await fetchPromise) as T;
   } finally {
-    inflight.delete(inflightKey);
+    inflight.delete(l1Key);
   }
 }
 
