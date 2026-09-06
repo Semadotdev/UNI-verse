@@ -59,16 +59,15 @@ export default function PostsPage() {
     const requestId = ++meRequestIdRef.current;
 
     refreshFolders().catch(() => {});
+    const initialLoad = async () => {
+      await load(1, feed).catch(() => {});
+    };
+    void initialLoad();
     ApiClient.get<Viewer>("/api/me", { cache: "no-store" })
       .then((me) => {
         if (!mountedRef.current || requestId !== meRequestIdRef.current) return;
         setViewer(me);
         setShowNsfw(me.showNsfw);
-        return me;
-      })
-      .then(() => {
-        if (!mountedRef.current || requestId !== meRequestIdRef.current) return;
-        return load(1, feed).catch(() => {});
       })
       .catch(() => {});
 
