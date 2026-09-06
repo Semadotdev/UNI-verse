@@ -34,6 +34,7 @@ vi.mock("@/application/services/upload.service", () => ({
 }));
 
 import { prisma } from "@/infrastructure/database/prisma-client";
+import { resetFeedCache } from "@/infrastructure/cache/feed-cache";
 import { PostService } from "./post.service";
 
 const ADULT = new Date("2000-01-01");
@@ -257,6 +258,7 @@ describe("PostService.listFeed", () => {
 
   beforeEach(() => {
     svc = new PostService();
+    resetFeedCache();
     vi.clearAllMocks();
     vi.mocked(prisma.post.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.post.count).mockResolvedValue(0);

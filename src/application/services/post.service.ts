@@ -9,6 +9,12 @@ import { buildFeedWhere, type PostFeed } from '@/application/services/post-feed-
 import { isNsfwCategories } from '@/domain/constants/nsfw-genres';
 import { isReactionType, REACTIONS, type ReactionType } from '@/domain/constants/reactions';
 import { createLogger } from '@/shared/utils/logger';
+import {
+  feedCacheKey,
+  getCachedFeed,
+  invalidateFeedCache,
+  setCachedFeed,
+} from '@/infrastructure/cache/feed-cache';
 
 const logger = createLogger('PostService');
 
@@ -43,6 +49,26 @@ export class PostService {
     filter?: { username?: string; feed?: PostFeed }
   ): Promise<PaginatedResult<Post>> {
     const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const cacheKey = feedCacheKey(userId, page, safeLimit, filter);
+    const cached = getCachedFeed(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const result = await this.queryFeed(userId, page, safeLimit, filter);
+    if (result.data.length > 0) {
+      setCachedFeed(cacheKey, result);
+    }
+    return result;
+  }
+
+  private async queryFeed(
+    userId: string,
+    page: number,
+    safeLimit: number,
+    filter?: { username?: string; feed?: PostFeed }
+  ): Promise<PaginatedResult<Post>> {
     const skip = (page - 1) * safeLimit;
 
     let authorId: string | undefined;
@@ -165,6 +191,7 @@ export class PostService {
     });
 
     logger.info(`Post created by ${authorId}`);
+    invalidateFeedCache();
     return this.toPost(post, authorId, false, null, []);
   }
 
@@ -196,6 +223,7 @@ export class PostService {
 
     const updated = await this.get(postId, authorId, true);
     if (!updated) throw new Error('Post not found');
+    invalidateFeedCache();
     return updated;
   }
 
@@ -215,6 +243,7 @@ export class PostService {
 
     await prisma.post.delete({ where: { id: postId } });
     await this.uploadService.deleteImages(post.images.map((img) => img.url));
+    invalidateFeedCache();
     logger.info(`Post deleted: ${postId}`);
   }
 
@@ -227,10 +256,12 @@ export class PostService {
       update: { type },
     });
     await this.notificationService.onPostReacted(postId, userId, type);
+    invalidateFeedCache();
   }
 
   async unlike(postId: string, userId: string): Promise<void> {
     await prisma.like.deleteMany({ where: { postId, userId } });
+    invalidateFeedCache();
   }
 
   private async assertOwnedFolder(folderId: string, userId: string): Promise<void> {
