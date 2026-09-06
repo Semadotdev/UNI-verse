@@ -1,5 +1,6 @@
 import { createLogger } from '@/shared/utils/logger';
 import { IMAGE_PROXY_CACHE_MAX_AGE } from '@/shared/constants';
+import { getCachedImage, setCachedImage } from '@/infrastructure/proxy/image-cache';
 
 const logger = createLogger('ImageProxy');
 const BLOCKED_CONTENT_TYPES = ['text/html', 'text/plain', 'application/json'];
@@ -26,10 +27,31 @@ export interface ProxyImageResult {
   cacheControl: string;
 }
 
+function bufferToStream(buffer: Uint8Array): ReadableStream {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(buffer);
+      controller.close();
+    },
+  });
+}
+
 export async function proxyImage(
   url: string,
   headers?: Record<string, string>
 ): Promise<ProxyImageResult> {
+  const cacheControl = `public, max-age=${IMAGE_PROXY_CACHE_MAX_AGE}, immutable`;
+
+  const cached = await getCachedImage(url, headers);
+  if (cached) {
+    logger.debug(`Image cache hit: ${url}`);
+    return {
+      stream: bufferToStream(cached.buffer),
+      contentType: cached.contentType,
+      cacheControl,
+    };
+  }
+
   const referer = getRefererForUrl(url);
   const fetchHeaders: Record<string, string> = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -58,10 +80,15 @@ export async function proxyImage(
     throw new Error(`Image too large: ${contentLength} bytes`);
   }
 
-  const cacheControl = `public, max-age=${IMAGE_PROXY_CACHE_MAX_AGE}, immutable`;
+  const buffer = Buffer.from(await response.arrayBuffer());
+  if (buffer.length > MAX_SIZE_BYTES) {
+    throw new Error(`Image too large: ${buffer.length} bytes`);
+  }
+
+  void setCachedImage(url, headers, buffer, contentType);
 
   return {
-    stream: response.body!,
+    stream: bufferToStream(buffer),
     contentType,
     cacheControl,
   };
