@@ -352,3 +352,16 @@ model RateLimitBucket {
   @@index([resetAt])
   @@map("rate_limit_bucket")
 }
+
+model ProviderCache {
+  id         String   @id @default(cuid())
+  providerId String
+  cacheKey   String
+  payload    Json
+  fetchedAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@unique([providerId, cacheKey])
+  @@index([expiresAt])
+  @@map("provider_cache")
+}

@@ -5,8 +5,14 @@ import { providerRegistry } from '@/infrastructure/providers/registry';
 import { initializeBuiltinProviders } from '@/infrastructure/providers/initialize';
 import { ProviderError } from '@/shared/errors/provider-error';
 import { createLogger } from '@/shared/utils/logger';
+import { CACHE_TTL, getOrFetch } from '@/infrastructure/cache/provider-cache';
 
 const logger = createLogger('SearchService');
+
+function stableKey(value: unknown): string {
+  if (value === undefined) return '';
+  return JSON.stringify(value, Object.keys(value ?? {}).sort());
+}
 
 export class SearchService {
   async search(
@@ -22,7 +28,9 @@ export class SearchService {
     const results = await Promise.allSettled(
       providers.map(async (p) => {
         try {
-          return await p.search(query, page, filters);
+          return await getOrFetch(p.id, `srch:${query}:${page}:${stableKey(filters)}`, CACHE_TTL.search, () =>
+            p.search(query, page, filters)
+          );
         } catch (error) {
           logger.error(`Search failed for provider ${p.id}`, error);
           return { data: [], page: 1, totalPages: 0, hasMore: false };
@@ -55,7 +63,9 @@ export class SearchService {
     if (!provider.getPopular) {
       throw ProviderError.invalidModule(providerId, 'does not support popular');
     }
-    return provider.getPopular(page, filters);
+    return getOrFetch<PaginatedResult<Manga>>(providerId, `pop:${page}:${stableKey(filters)}`, CACHE_TTL.popular, () =>
+      provider.getPopular!(page, filters)
+    );
   }
 
   async getLatest(providerId: string, page = 1, filters?: ProviderFilters): Promise<PaginatedResult<Manga>> {
@@ -63,7 +73,9 @@ export class SearchService {
     if (!provider.getLatest) {
       throw ProviderError.invalidModule(providerId, 'does not support latest');
     }
-    return provider.getLatest(page, filters);
+    return getOrFetch<PaginatedResult<Manga>>(providerId, `lt:${page}:${stableKey(filters)}`, CACHE_TTL.latest, () =>
+      provider.getLatest!(page, filters)
+    );
   }
 
   private async findProvider(providerId: string): Promise<Provider> {

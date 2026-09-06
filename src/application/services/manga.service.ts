@@ -4,21 +4,28 @@ import type { Page } from '@/domain/entities/page';
 import { providerRegistry } from '@/infrastructure/providers/registry';
 import { initializeBuiltinProviders } from '@/infrastructure/providers/initialize';
 import { ProviderError } from '@/shared/errors/provider-error';
+import { CACHE_TTL, getOrFetch } from '@/infrastructure/cache/provider-cache';
 
 export class MangaService {
   async getDetails(providerId: string, mangaId: string): Promise<Manga> {
     const provider = await this.findProvider(providerId);
-    return provider.getMangaDetails(mangaId);
+    return getOrFetch<Manga>(providerId, `det:${mangaId}`, CACHE_TTL.details, () =>
+      provider.getMangaDetails(mangaId)
+    );
   }
 
   async getChapters(providerId: string, mangaId: string): Promise<Chapter[]> {
     const provider = await this.findProvider(providerId);
-    return provider.getChapterList(mangaId);
+    return getOrFetch<Chapter[]>(providerId, `chap:${mangaId}`, CACHE_TTL.chapters, () =>
+      provider.getChapterList(mangaId)
+    );
   }
 
   async getPages(providerId: string, chapterId: string): Promise<Page[]> {
     const provider = await this.findProvider(providerId);
-    return provider.getPageList(chapterId);
+    return getOrFetch<Page[]>(providerId, `page:${chapterId}`, CACHE_TTL.pages, () =>
+      provider.getPageList(chapterId)
+    );
   }
 
   private async findProvider(providerId: string) {
