@@ -1,12 +1,21 @@
 "use client";
 
 import { ReactNode, useEffect } from "react";
-import { ToastProvider } from "@/contexts/ToastContext";
+import { ToastProvider, useToast } from "@/contexts/ToastContext";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { LibraryProvider } from "@/contexts/LibraryContext";
 import { ProviderProvider } from "@/contexts/ProviderContext";
 import { BatchAddProgress } from "@/components/library/BatchAddProgress";
-import { registerRewardFlusher } from "@/lib/reward-queue";
+import { onRewardConfirmed, registerRewardFlusher } from "@/lib/reward-queue";
+
+function RewardCoinToaster() {
+  const { addToast } = useToast();
+  useEffect(() => {
+    onRewardConfirmed(() => addToast("You earned a coin!", "success"));
+    return () => onRewardConfirmed(null);
+  }, [addToast]);
+  return null;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -15,6 +24,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <ToastProvider>
+      <RewardCoinToaster />
       <SettingsProvider>
         <LibraryProvider>
           <ProviderProvider>
