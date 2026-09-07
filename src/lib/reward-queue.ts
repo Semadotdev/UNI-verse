@@ -1,9 +1,7 @@
 import { ApiClient } from "@/lib/api-client";
 
 const QUEUE_KEY = "reward-queue:v1";
-const CLAIMED_KEY = "reward-claimed:v1";
 const MAX_QUEUE_SIZE = 200;
-const MAX_CLAIMED_SIZE = 500;
 
 export interface RewardConfirmedDetails {
   providerId: string;
@@ -68,39 +66,6 @@ function persistJobs(jobs: RewardJob[]): boolean {
 
 function removeJob(key: string): void {
   persistJobs(readJobs().filter((j) => j.key !== key));
-}
-
-function readClaims(): string[] {
-  try {
-    const raw = globalThis.localStorage.getItem(CLAIMED_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistClaims(claims: string[]): boolean {
-  try {
-    globalThis.localStorage.setItem(CLAIMED_KEY, JSON.stringify(claims.slice(-MAX_CLAIMED_SIZE)));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function hasLocalClaim(providerId: string, mangaId: string, chapterId: string): boolean {
-  return readClaims().includes(chapterKey(providerId, mangaId, chapterId));
-}
-
-export function markLocalClaim(providerId: string, mangaId: string, chapterId: string): void {
-  const key = chapterKey(providerId, mangaId, chapterId);
-  if (!readClaims().includes(key)) {
-    const claims = readClaims();
-    claims.push(key);
-    persistClaims(claims);
-  }
 }
 
 export function pendingJobCount(): number {
@@ -187,11 +152,6 @@ export function claimChapterReward(details: {
   title?: string;
   coverUrl?: string;
 }): RewardClaim {
-  if (hasLocalClaim(details.providerId, details.mangaId, details.chapterId)) {
-    return { shown: false };
-  }
-  markLocalClaim(details.providerId, details.mangaId, details.chapterId);
-
   const job: RewardJob = {
     ...details,
     key: chapterKey(details.providerId, details.mangaId, details.chapterId),

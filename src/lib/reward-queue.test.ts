@@ -3,7 +3,6 @@ import { ApiClient } from "@/lib/api-client";
 import {
   claimChapterReward,
   flushRewardQueue,
-  hasLocalClaim,
   onRewardConfirmed,
   pendingJobCount,
 } from "./reward-queue";
@@ -50,12 +49,11 @@ describe("claimChapterReward", () => {
   it("returns shown=true and queues a job on first claim", () => {
     expect(claim().shown).toBe(true);
     expect(pendingJobCount()).toBe(1);
-    expect(hasLocalClaim("p", "m", "ch-1")).toBe(true);
   });
 
-  it("returns shown=false and does not duplicate a job on re-claim", () => {
+  it("re-claims are re-attempted but a job is not duplicated in the queue", () => {
     expect(claim().shown).toBe(true);
-    expect(claim().shown).toBe(false);
+    expect(claim().shown).toBe(true);
     expect(pendingJobCount()).toBe(1);
   });
 
