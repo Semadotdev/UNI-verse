@@ -1,0 +1,184 @@
+import { ApiClient } from "@/lib/api-client";
+
+const QUEUE_KEY = "reward-queue:v1";
+const CLAIMED_KEY = "reward-claimed:v1";
+const MAX_QUEUE_SIZE = 50;
+const MAX_CLAIMED_SIZE = 500;
+
+export interface RewardJob {
+  key: string;
+  providerId: string;
+  mangaId: string;
+  chapterId: string;
+  chapterNum: number;
+  title?: string;
+  coverUrl?: string;
+  progress: number;
+  completed: boolean;
+}
+
+export interface RewardClaim {
+  shown: boolean;
+}
+
+function chapterKey(providerId: string, mangaId: string, chapterId: string): string {
+  return `${providerId}/${mangaId}/${chapterId}`;
+}
+
+function readJobs(): RewardJob[] {
+  try {
+    const raw = globalThis.localStorage.getItem(QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RewardJob[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistJobs(jobs: RewardJob[]): boolean {
+  try {
+    globalThis.localStorage.setItem(QUEUE_KEY, JSON.stringify(jobs));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function removeJob(key: string): void {
+  persistJobs(readJobs().filter((j) => j.key !== key));
+}
+
+function readClaims(): string[] {
+  try {
+    const raw = globalThis.localStorage.getItem(CLAIMED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistClaims(claims: string[]): boolean {
+  try {
+    globalThis.localStorage.setItem(CLAIMED_KEY, JSON.stringify(claims.slice(-MAX_CLAIMED_SIZE)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function hasLocalClaim(providerId: string, mangaId: string, chapterId: string): boolean {
+  return readClaims().includes(chapterKey(providerId, mangaId, chapterId));
+}
+
+export function markLocalClaim(providerId: string, mangaId: string, chapterId: string): void {
+  const key = chapterKey(providerId, mangaId, chapterId);
+  if (!readClaims().includes(key)) {
+    const claims = readClaims();
+    claims.push(key);
+    persistClaims(claims);
+  }
+}
+
+export function pendingJobCount(): number {
+  return readJobs().length;
+}
+
+let flushing = false;
+
+export async function flushRewardQueue(): Promise<void> {
+  if (flushing) return;
+  flushing = true;
+  try {
+    for (const job of readJobs()) {
+      try {
+        await ApiClient.post<{ rewarded?: boolean; balance?: number }>(
+          "/api/history",
+          {
+            providerId: job.providerId,
+            mangaId: job.mangaId,
+            chapterId: job.chapterId,
+            chapterNum: job.chapterNum,
+            title: job.title,
+            coverUrl: job.coverUrl,
+            progress: job.progress,
+            completed: job.completed,
+          },
+          { keepalive: true }
+        );
+        removeJob(job.key);
+      } catch {
+        // transient failure — keep the job queued for a later flush
+      }
+    }
+  } finally {
+    flushing = false;
+  }
+}
+
+function fireAndForget(job: RewardJob): void {
+  void ApiClient.post<{ rewarded?: boolean; balance?: number }>(
+    "/api/history",
+    {
+      providerId: job.providerId,
+      mangaId: job.mangaId,
+      chapterId: job.chapterId,
+      chapterNum: job.chapterNum,
+      title: job.title,
+      coverUrl: job.coverUrl,
+      progress: job.progress,
+      completed: job.completed,
+    },
+    { keepalive: true }
+  ).catch(() => {});
+}
+
+export function claimChapterReward(details: {
+  providerId: string;
+  mangaId: string;
+  chapterId: string;
+  chapterNum: number;
+  title?: string;
+  coverUrl?: string;
+}): RewardClaim {
+  if (hasLocalClaim(details.providerId, details.mangaId, details.chapterId)) {
+    return { shown: false };
+  }
+  markLocalClaim(details.providerId, details.mangaId, details.chapterId);
+
+  const job: RewardJob = {
+    ...details,
+    key: chapterKey(details.providerId, details.mangaId, details.chapterId),
+    progress: 100,
+    completed: true,
+  };
+
+  const jobs = readJobs();
+  if (!jobs.some((j) => j.key === job.key)) {
+    jobs.push(job);
+    if (!persistJobs(jobs.slice(-MAX_QUEUE_SIZE))) {
+      fireAndForget(job);
+    }
+  }
+
+  void flushRewardQueue();
+  return { shown: true };
+}
+
+export function registerRewardFlusher(): () => void {
+  const flush = () => {
+    void flushRewardQueue();
+  };
+  flush();
+  window.addEventListener("online", flush);
+  const onVisibility = () => {
+    if (document.visibilityState === "visible") flush();
+  };
+  document.addEventListener("visibilitychange", onVisibility);
+  return () => {
+    window.removeEventListener("online", flush);
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
+}
