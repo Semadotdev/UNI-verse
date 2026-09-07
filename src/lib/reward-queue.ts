@@ -2,8 +2,29 @@ import { ApiClient } from "@/lib/api-client";
 
 const QUEUE_KEY = "reward-queue:v1";
 const CLAIMED_KEY = "reward-claimed:v1";
-const MAX_QUEUE_SIZE = 50;
+const MAX_QUEUE_SIZE = 200;
 const MAX_CLAIMED_SIZE = 500;
+
+export interface RewardConfirmedDetails {
+  providerId: string;
+  mangaId: string;
+  chapterId: string;
+  balance?: number;
+}
+
+type RewardConfirmedHandler = (details: RewardConfirmedDetails) => void;
+
+let rewardConfirmedHandler: RewardConfirmedHandler | null = null;
+
+export function onRewardConfirmed(handler: RewardConfirmedHandler | null): void {
+  rewardConfirmedHandler = handler;
+}
+
+interface RewardResponse {
+  rewarded?: boolean;
+  alreadyRewarded?: boolean;
+  balance?: number;
+}
 
 export interface RewardJob {
   key: string;
@@ -94,7 +115,7 @@ export async function flushRewardQueue(): Promise<void> {
   try {
     for (const job of readJobs()) {
       try {
-        await ApiClient.post<{ rewarded?: boolean; balance?: number }>(
+        const data = await ApiClient.post<RewardResponse>(
           "/api/history",
           {
             providerId: job.providerId,
@@ -108,7 +129,19 @@ export async function flushRewardQueue(): Promise<void> {
           },
           { keepalive: true }
         );
-        removeJob(job.key);
+        if (data.rewarded === true) {
+          removeJob(job.key);
+          rewardConfirmedHandler?.({
+            providerId: job.providerId,
+            mangaId: job.mangaId,
+            chapterId: job.chapterId,
+            balance: data.balance,
+          });
+        } else if (data.alreadyRewarded === true) {
+          removeJob(job.key);
+        } else {
+          // indeterminate outcome — keep the job queued for a later flush
+        }
       } catch {
         // transient failure — keep the job queued for a later flush
       }
@@ -119,7 +152,7 @@ export async function flushRewardQueue(): Promise<void> {
 }
 
 function fireAndForget(job: RewardJob): void {
-  void ApiClient.post<{ rewarded?: boolean; balance?: number }>(
+  void ApiClient.post<RewardResponse>(
     "/api/history",
     {
       providerId: job.providerId,
@@ -132,7 +165,18 @@ function fireAndForget(job: RewardJob): void {
       completed: job.completed,
     },
     { keepalive: true }
-  ).catch(() => {});
+  )
+    .then((data) => {
+      if (data.rewarded === true) {
+        rewardConfirmedHandler?.({
+          providerId: job.providerId,
+          mangaId: job.mangaId,
+          chapterId: job.chapterId,
+          balance: data.balance,
+        });
+      }
+    })
+    .catch(() => {});
 }
 
 export function claimChapterReward(details: {

@@ -4,6 +4,7 @@ import {
   claimChapterReward,
   flushRewardQueue,
   hasLocalClaim,
+  onRewardConfirmed,
   pendingJobCount,
 } from "./reward-queue";
 
@@ -58,9 +59,9 @@ describe("claimChapterReward", () => {
     expect(pendingJobCount()).toBe(1);
   });
 
-  it("capped at 50 queued jobs", () => {
-    for (let i = 0; i < 60; i++) claim(`ch-${i}`);
-    expect(pendingJobCount()).toBe(50);
+  it("capped at 200 queued jobs", () => {
+    for (let i = 0; i < 250; i++) claim(`ch-${i}`);
+    expect(pendingJobCount()).toBe(200);
   });
 
   it("still returns shown=true when localStorage writes fail", async () => {
@@ -73,18 +74,39 @@ describe("claimChapterReward", () => {
 });
 
 describe("flushRewardQueue", () => {
-  it("removes the job after a successful reward post", async () => {
-    claim();
-    await flushRewardQueue();
-    expect(pendingJobCount()).toBe(0);
-    expect(postSpy).toHaveBeenCalledTimes(1);
+  it("removes the job and fires onRewardConfirmed after a confirmed reward", async () => {
+    const confirmed = vi.fn();
+    onRewardConfirmed(confirmed);
+    try {
+      claim();
+      await flushRewardQueue();
+      expect(pendingJobCount()).toBe(0);
+      expect(postSpy).toHaveBeenCalledTimes(1);
+      expect(confirmed).toHaveBeenCalledWith(expect.objectContaining({ chapterId: "ch-1", balance: 1 }));
+    } finally {
+      onRewardConfirmed(null);
+    }
   });
 
   it("removes the job when the server reports already rewarded", async () => {
-    postSpy.mockResolvedValue({ rewarded: false });
+    postSpy.mockResolvedValue({ rewarded: false, alreadyRewarded: true });
     claim();
     await flushRewardQueue();
     expect(pendingJobCount()).toBe(0);
+  });
+
+  it("keeps the job and does not toast when the server is indeterminate", async () => {
+    postSpy.mockResolvedValue({ rewarded: false, alreadyRewarded: false });
+    const confirmed = vi.fn();
+    onRewardConfirmed(confirmed);
+    try {
+      claim();
+      await flushRewardQueue();
+      expect(pendingJobCount()).toBe(1);
+      expect(confirmed).not.toHaveBeenCalled();
+    } finally {
+      onRewardConfirmed(null);
+    }
   });
 
   it("keeps the job when the post fails", async () => {
