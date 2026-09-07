@@ -15,7 +15,18 @@ export class RewardService {
         data: { rewardedAt: new Date() },
       });
       if (updated.count === 0) {
-        return { rewarded: false as const };
+        const existing = await tx.readChapter.findUnique({
+          where: {
+            userId_providerId_mangaId_chapterId: { userId, providerId, mangaId, chapterId },
+          },
+          select: { rewardedAt: true },
+        });
+        if (existing?.rewardedAt) {
+          return { rewarded: false as const, alreadyRewarded: true as const };
+        }
+        await tx.readChapter.create({
+          data: { userId, providerId, mangaId, chapterId, rewardedAt: new Date() },
+        });
       }
       const user = await tx.user.update({
         where: { id: userId },

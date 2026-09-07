@@ -54,13 +54,15 @@ export async function POST(request: NextRequest) {
 
     let rewarded: boolean | undefined;
     let balance: number | undefined;
+    let alreadyRewarded = false;
     if (completed === true) {
       const result = await rewardService.awardChapterCompletion(userId, providerId, mangaId, chapterId);
       rewarded = result.rewarded;
+      alreadyRewarded = result.alreadyRewarded === true;
       if (result.rewarded) balance = result.balance;
     }
 
-    return NextResponse.json(successResponse({ updated: true, rewarded, balance }));
+    return NextResponse.json(successResponse({ updated: true, rewarded, balance, alreadyRewarded }));
   } catch (error) {
     return NextResponse.json(
       errorResponse('HISTORY_ERROR', error instanceof Error ? error.message : 'Failed to update history'),
