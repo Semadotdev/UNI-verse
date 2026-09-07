@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { ApiClient } from "@/lib/api-client";
+import { buildPageImageUrl } from "@/lib/reader-page-image";
 import type { Page } from "@/domain/entities/page";
 import type { Settings } from "@/contexts/SettingsContext";
 
@@ -14,6 +14,8 @@ interface PagedReaderProps {
 
 export function PagedReader({ pages, settings, currentPage, onPageChange }: PagedReaderProps) {
   const [imageLoaded, setImageLoaded] = useState<Record<number, boolean>>({});
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
+  const [retryCounts, setRetryCounts] = useState<Record<number, number>>({});
   const zoomedRef = useRef(false);
   const [zoomed, setZoomed] = useState(false);
   const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 });
@@ -95,7 +97,13 @@ export function PagedReader({ pages, settings, currentPage, onPageChange }: Page
   if (pages.length === 0) return null;
 
   const page = pages[currentPage];
-  const imageUrl = ApiClient.imageUrl(page.url, page.headers);
+  const imageUrl = buildPageImageUrl(page, retryCounts[currentPage] ?? 0);
+
+  const handleRetry = () => {
+    setFailed((prev) => ({ ...prev, [currentPage]: false }));
+    setImageLoaded((prev) => ({ ...prev, [currentPage]: false }));
+    setRetryCounts((prev) => ({ ...prev, [currentPage]: (prev[currentPage] ?? 0) + 1 }));
+  };
 
   const scaleX = settings.scaleType === "fit-width" ? "w-full h-auto" : "h-[calc(100vh-8rem)] w-auto";
   const scaleY = settings.scaleType === "contain" ? "max-h-[calc(100vh-8rem)] w-auto" : "";
@@ -114,7 +122,11 @@ export function PagedReader({ pages, settings, currentPage, onPageChange }: Page
         src={imageUrl}
         alt={`Page ${currentPage + 1}`}
         className={`mx-auto transition-transform duration-200 ${scaleX} ${scaleY}`}
-        onLoad={() => setImageLoaded((prev) => ({ ...prev, [currentPage]: true }))}
+        onLoad={() => {
+          setImageLoaded((prev) => ({ ...prev, [currentPage]: true }));
+          setFailed((prev) => ({ ...prev, [currentPage]: false }));
+        }}
+        onError={() => setFailed((prev) => ({ ...prev, [currentPage]: true }))}
         onClick={settings.doubleTapZoom ? handleDoubleTap : undefined}
         style={{
           opacity: imageLoaded[currentPage] ? 1 : 0,
@@ -124,6 +136,19 @@ export function PagedReader({ pages, settings, currentPage, onPageChange }: Page
           objectFit: settings.cropBorders ? "contain" : undefined,
         }}
       />
+      {failed[currentPage] && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center px-4">
+            <p className="text-sm text-muted mb-4">Failed to load page {currentPage + 1}</p>
+            <button
+              onClick={handleRetry}
+              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
       {settings.showPageNumber && (
         <div className="absolute bottom-4 right-4 px-2 py-1 rounded bg-black/60 text-white text-xs font-medium">
           {currentPage + 1} / {pages.length}
