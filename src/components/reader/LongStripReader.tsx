@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ApiClient } from "@/lib/api-client";
+import { buildPageImageUrl } from "@/lib/reader-page-image";
 import type { Page } from "@/domain/entities/page";
 import type { Settings } from "@/contexts/SettingsContext";
 
@@ -13,6 +13,8 @@ interface LongStripReaderProps {
 
 export function LongStripReader({ pages, settings, onPageChange }: LongStripReaderProps) {
   const [loaded, setLoaded] = useState<Record<number, boolean>>({});
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
+  const [retryCounts, setRetryCounts] = useState<Record<number, number>>({});
   const [zoomedPage, setZoomedPage] = useState<number | null>(null);
   const lastTap = useRef(0);
   const intersectingRef = useRef<Map<Element, number>>(new Map());
@@ -95,28 +97,49 @@ export function LongStripReader({ pages, settings, onPageChange }: LongStripRead
       }}
     >
       {pages.map((page, i) => {
-        const imageUrl = page.direct ? page.url : ApiClient.imageUrl(page.url, page.headers);
+        const retryCount = retryCounts[i] ?? 0;
+        const imageUrl = buildPageImageUrl(page, retryCount);
         return (
           <div
             key={page.index}
             data-index={i}
-            className="w-full"
+            className="w-full relative"
             onClick={() => handleDoubleTap(i)}
           >
             <img
               src={imageUrl}
               alt={`Page ${i + 1}`}
               loading={i < settings.pagePreloadCount ? "eager" : "lazy"}
-              className="w-full h-auto"
-              style={{
+              className={failed[i] ? "hidden" : "w-full h-auto"}
+              style={failed[i] ? undefined : {
                 opacity: loaded[i] ? 1 : 0,
                 transition: "opacity 0.3s ease-in-out",
                 filter: `brightness(${settings.brightness})`,
                 transform: zoomedPage === i ? "scale(1.5)" : undefined,
                 transformOrigin: "top center",
               }}
-              onLoad={() => setLoaded((prev) => ({ ...prev, [i]: true }))}
+              onLoad={() => {
+                setLoaded((prev) => ({ ...prev, [i]: true }));
+                setFailed((prev) => ({ ...prev, [i]: false }));
+              }}
+              onError={() => setFailed((prev) => ({ ...prev, [i]: true }))}
             />
+            {failed[i] && (
+              <div className="flex flex-col items-center justify-center min-h-[50vh] w-full">
+                <p className="text-sm text-muted mb-4">Failed to load page {i + 1}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFailed((prev) => ({ ...prev, [i]: false }));
+                    setLoaded((prev) => ({ ...prev, [i]: false }));
+                    setRetryCounts((prev) => ({ ...prev, [i]: (prev[i] ?? 0) + 1 }));
+                  }}
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
         );
       })}
