@@ -35,6 +35,7 @@ vi.mock("@/application/services/upload.service", () => ({
 
 import { prisma } from "@/infrastructure/database/prisma-client";
 import { resetFeedCache } from "@/infrastructure/cache/feed-cache";
+import { resetPostCache } from "@/infrastructure/cache/post-cache";
 import { PostService } from "./post.service";
 
 const ADULT = new Date("2000-01-01");
@@ -136,7 +137,12 @@ describe("PostService.update", () => {
 
   beforeEach(() => {
     svc = new PostService();
+    resetPostCache();
     vi.mocked(prisma.folder.findFirst).mockResolvedValue(folderRow("f2") as never);
+    vi.mocked(prisma.folder.findUnique).mockResolvedValue({
+      id: "f2",
+      items: [{ categories: ["Action"] }],
+    } as never);
     vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
     vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);
@@ -223,6 +229,7 @@ describe("PostService.get age gate", () => {
 
   beforeEach(() => {
     svc = new PostService();
+    resetPostCache();
     vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
     vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
   });
@@ -346,6 +353,7 @@ describe("PostService.get reactions", () => {
 
   beforeEach(() => {
     svc = new PostService();
+    resetPostCache();
     vi.clearAllMocks();
     vi.mocked(prisma.like.findUnique).mockResolvedValue({ type: "love" } as never);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);

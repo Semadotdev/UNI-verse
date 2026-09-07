@@ -15,6 +15,11 @@ import {
   invalidateFeedCache,
   setCachedFeed,
 } from '@/infrastructure/cache/feed-cache';
+import {
+  getCachedPost,
+  invalidatePostCache,
+  setCachedPost,
+} from '@/infrastructure/cache/post-cache';
 
 const logger = createLogger('PostService');
 
@@ -37,6 +42,13 @@ const POST_INCLUDE = {
 } satisfies Prisma.PostInclude;
 
 type PostWithRelations = Prisma.PostGetPayload<{ include: typeof POST_INCLUDE }>;
+
+type ReactionCountRow = { postId: string; type: string; _count: { _all: number } };
+
+interface CachedPostDetail {
+  post: PostWithRelations;
+  reactionGroups: ReactionCountRow[];
+}
 
 export class PostService {
   private readonly uploadService = new UploadService();
@@ -139,17 +151,28 @@ export class PostService {
   }
 
   async get(postId: string, viewerId: string, skipAgeGate = false): Promise<Post | null> {
-    const post = await prisma.post.findUnique({ where: { id: postId }, include: POST_INCLUDE });
-    if (!post) return null;
+    const cached = getCachedPost(postId) as CachedPostDetail | undefined;
+    let post: PostWithRelations;
+    let reactionGroups: ReactionCountRow[];
 
-    const [myLike, viewer, reactionGroups] = await Promise.all([
-      prisma.like.findUnique({ where: { postId_userId: { postId, userId: viewerId } } }),
-      prisma.user.findUnique({ where: { id: viewerId }, select: { role: true, birthDate: true } }),
-      prisma.like.groupBy({
+    if (cached) {
+      post = cached.post;
+      reactionGroups = cached.reactionGroups;
+    } else {
+      const fetched = await prisma.post.findUnique({ where: { id: postId }, include: POST_INCLUDE });
+      if (!fetched) return null;
+      reactionGroups = (await prisma.like.groupBy({
         by: ['postId', 'type'],
         where: { postId },
         _count: { _all: true },
-      }),
+      })) as unknown as ReactionCountRow[];
+      setCachedPost(postId, { post: fetched, reactionGroups });
+      post = fetched;
+    }
+
+    const [myLike, viewer] = await Promise.all([
+      prisma.like.findUnique({ where: { postId_userId: { postId, userId: viewerId } } }),
+      prisma.user.findUnique({ where: { id: viewerId }, select: { role: true, birthDate: true } }),
     ]);
 
     if (!skipAgeGate && post.nsfw && !isAdult(viewer?.birthDate ?? null)) {
