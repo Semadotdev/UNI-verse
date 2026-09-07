@@ -5,6 +5,7 @@ import { NotificationService } from '@/application/services/notification.service
 import { ForbiddenError } from '@/shared/errors/forbidden-error';
 import { createLogger } from '@/shared/utils/logger';
 import { invalidateFeedCache } from '@/infrastructure/cache/feed-cache';
+import { invalidatePostCache } from '@/infrastructure/cache/post-cache';
 
 const logger = createLogger('CommentService');
 
@@ -102,6 +103,7 @@ export class CommentService {
     }
 
     logger.info(`Comment created on post ${postId}`);
+    invalidatePostCache(postId);
     invalidateFeedCache();
     return {
       id: comment.id,
@@ -132,6 +134,7 @@ export class CommentService {
     }
 
     await prisma.comment.delete({ where: { id: commentId } });
+    invalidatePostCache(comment.postId);
     invalidateFeedCache();
     logger.info(`Comment deleted: ${commentId}`);
   }

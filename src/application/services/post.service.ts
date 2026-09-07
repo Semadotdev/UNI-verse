@@ -244,6 +244,7 @@ export class PostService {
       },
     });
 
+    invalidatePostCache(postId);
     const updated = await this.get(postId, authorId, true);
     if (!updated) throw new Error('Post not found');
     invalidateFeedCache();
@@ -266,6 +267,7 @@ export class PostService {
 
     await prisma.post.delete({ where: { id: postId } });
     await this.uploadService.deleteImages(post.images.map((img) => img.url));
+    invalidatePostCache(postId);
     invalidateFeedCache();
     logger.info(`Post deleted: ${postId}`);
   }
@@ -279,11 +281,13 @@ export class PostService {
       update: { type },
     });
     await this.notificationService.onPostReacted(postId, userId, type);
+    invalidatePostCache(postId);
     invalidateFeedCache();
   }
 
   async unlike(postId: string, userId: string): Promise<void> {
     await prisma.like.deleteMany({ where: { postId, userId } });
+    invalidatePostCache(postId);
     invalidateFeedCache();
   }
 

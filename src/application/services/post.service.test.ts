@@ -378,3 +378,85 @@ describe("PostService.get reactions", () => {
     ]);
   });
 });
+
+describe("PostService.get caching", () => {
+  let svc: PostService;
+
+  beforeEach(() => {
+    svc = new PostService();
+    resetPostCache();
+    vi.clearAllMocks();
+    vi.mocked(prisma.post.findUnique).mockResolvedValue(postRow({ nsfw: false }) as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);
+    vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
+  });
+
+  it("reuses the cached detail across viewers while keeping myReaction per-user", async () => {
+    vi.mocked(prisma.like.findUnique)
+      .mockResolvedValueOnce({ type: "love" } as never)
+      .mockResolvedValueOnce(null as never);
+
+    const asU1 = await svc.get("p1", "u1");
+    const asU2 = await svc.get("p1", "u2");
+
+    expect(asU1!.myReaction).toBe("love");
+    expect(asU2!.myReaction).toBeNull();
+    expect(prisma.post.findUnique).toHaveBeenCalledTimes(1);
+    expect(prisma.like.groupBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("still enforces the age gate against a cached nsfw post", async () => {
+    vi.mocked(prisma.post.findUnique).mockResolvedValue(postRow({ nsfw: true }) as never);
+    vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
+
+    await svc.get("p1", "u1");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u2", role: "user", birthDate: MINOR } as never);
+
+    const minorResult = await svc.get("p1", "u2");
+
+    expect(minorResult).toBeNull();
+    expect(prisma.post.findUnique).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns fresh data after a post is updated", async () => {
+    vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.folder.findFirst).mockResolvedValue(folderRow("f1") as never);
+    vi.mocked(prisma.folder.findUnique).mockResolvedValue({ id: "f1", items: [] } as never);
+    vi.mocked(prisma.post.findUnique)
+      .mockResolvedValueOnce(postRow({ id: "p1", folderId: "f1", nsfw: false, nsfwExplicit: false }) as never)
+      .mockResolvedValueOnce(postRow({ id: "p1", folderId: "f1", nsfw: false, nsfwExplicit: false }) as never)
+      .mockResolvedValueOnce(postRow({ id: "p1", body: "edited", folderId: "f1", nsfw: false, nsfwExplicit: false }) as never);
+    vi.mocked(prisma.post.update).mockResolvedValue(
+      postRow({ id: "p1", body: "edited", folderId: "f1", nsfw: false, nsfwExplicit: false }) as never
+    );
+
+    const before = await svc.get("p1", "u1");
+    const after = await svc.update("p1", "u1", { body: "edited" });
+
+    expect(before!.body).toBe("hello world");
+    expect(after.body).toBe("edited");
+    expect(prisma.post.findUnique).toHaveBeenCalledTimes(3);
+  });
+
+  it("refetches reaction aggregates after a react", async () => {
+    vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.like.upsert).mockResolvedValue({} as never);
+
+    await svc.get("p1", "u1");
+    await svc.react("p1", "u1", "like");
+    await svc.get("p1", "u1");
+
+    expect(prisma.like.groupBy).toHaveBeenCalledTimes(2);
+  });
+
+  it("refetches reaction aggregates after an unlike", async () => {
+    vi.mocked(prisma.like.findUnique).mockResolvedValue(null as never);
+    vi.mocked(prisma.like.deleteMany).mockResolvedValue({ count: 1 });
+
+    await svc.get("p1", "u1");
+    await svc.unlike("p1", "u1");
+    await svc.get("p1", "u1");
+
+    expect(prisma.like.groupBy).toHaveBeenCalledTimes(2);
+  });
+});
