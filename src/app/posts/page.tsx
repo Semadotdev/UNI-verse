@@ -140,6 +140,7 @@ export default function PostsPage() {
         <h1 className="text-xl font-bold text-zinc-100">Posts</h1>
         <button
           onClick={openComposer}
+          data-tour="create-post"
           className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-light transition-colors"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

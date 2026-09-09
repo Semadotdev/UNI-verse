@@ -51,3 +51,28 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const userId = await getAuthUserId();
+    const { searchParams } = new URL(request.url);
+    const providerId = searchParams.get('providerId');
+    const mangaId = searchParams.get('mangaId');
+    const chapterId = searchParams.get('chapterId');
+
+    if (!providerId || !mangaId || !chapterId) {
+      return NextResponse.json(
+        errorResponse('MISSING_FIELDS', 'providerId, mangaId, and chapterId are required'),
+        { status: 400 }
+      );
+    }
+
+    await historyService.markChapterUnread(userId, providerId, mangaId, chapterId);
+    return NextResponse.json(successResponse({ removed: true }));
+  } catch (error) {
+    return NextResponse.json(
+      errorResponse('HISTORY_ERROR', error instanceof Error ? error.message : 'Failed to mark chapter as unread'),
+      { status: 500 }
+    );
+  }
+}

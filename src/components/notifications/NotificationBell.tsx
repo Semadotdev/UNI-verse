@@ -390,6 +390,7 @@ export function NotificationBell({ variant = "desktop", userId = null }: Notific
   return (
     <div ref={dropdownRef} className="relative hidden md:block">
       <button
+        data-tour="notifications"
         onClick={toggleDesktop}
         className="relative flex items-center px-3 py-2 rounded-lg text-sm text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200"
         aria-label="Notifications"

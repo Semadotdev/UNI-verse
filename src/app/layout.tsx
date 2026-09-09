@@ -7,6 +7,7 @@ import { ToastContainer } from "@/components/ui/Toast";
 import { Providers } from "@/components/Providers";
 import { ThemeApplier } from "@/components/ThemeApplier";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { TourProvider, WelcomeModal, TourOverlay, ALL_STEPS } from "@/components/onboarding";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -59,13 +60,17 @@ export default function RootLayout({
       <body className={`${inter.className} bg-bg text-zinc-100 antialiased flex flex-col min-h-screen`}>
         <ServiceWorkerRegister />
         <Providers>
-          <ThemeApplier />
-          <Navbar />
-          <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
-            {children}
-          </main>
-          <Footer />
-          <ToastContainer />
+          <TourProvider steps={ALL_STEPS}>
+            <ThemeApplier />
+            <Navbar />
+            <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
+              {children}
+            </main>
+            <Footer />
+            <ToastContainer />
+            <WelcomeModal />
+            <TourOverlay />
+          </TourProvider>
         </Providers>
       </body>
     </html>

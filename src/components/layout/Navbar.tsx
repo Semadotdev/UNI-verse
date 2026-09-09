@@ -161,10 +161,12 @@ export function Navbar() {
         <div className="flex items-center justify-around h-16 px-2">
           {navItemsMobile.map((item) => {
             const isActive = pathname === item.href;
+            const tourId = item.href === "/" ? "home" : item.href.slice(1);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={tourId}
                 className={cn(
                   "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[48px]",
                   isActive ? "text-primary-light" : "text-muted hover:text-zinc-300"
@@ -181,6 +183,7 @@ export function Navbar() {
             );
           })}
           <button
+            data-tour="provider"
             onClick={() => setMobileMenuOpen(true)}
             className={cn(
               "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[48px]",
@@ -378,10 +381,12 @@ export function Navbar() {
         <div className="flex items-center gap-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const tourId = item.href === "/" ? "home" : item.href.slice(1);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={tourId}
                 className={cn(
                   "relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200",
                   isActive

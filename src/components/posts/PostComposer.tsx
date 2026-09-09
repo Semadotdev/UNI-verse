@@ -98,11 +98,13 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
   };
 
   return (
+    <div>
     <Modal
       open={open}
       onClose={onClose}
       title={editing ? "Edit post" : "Create post"}
       size="lg"
+      dataTour="post-composer"
       footer={
         <>
           <button
@@ -235,5 +237,6 @@ export function PostComposer({ open, onClose, folders, viewer, editing, onSaved 
         </label>
       </div>
     </Modal>
+    </div>
   );
 }

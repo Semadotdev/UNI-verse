@@ -64,4 +64,18 @@ export class HistoryService {
       update: { readAt: new Date() },
     });
   }
+
+  async markChapterUnread(userId: string, providerId: string, mangaId: string, chapterId: string) {
+    return prisma.readChapter.deleteMany({
+      where: { userId, providerId, mangaId, chapterId },
+    });
+  }
+
+  async getLatestReadChapter(userId: string, providerId: string, mangaId: string) {
+    return prisma.readChapter.findFirst({
+      where: { userId, providerId, mangaId },
+      orderBy: { readAt: 'desc' },
+      select: { chapterId: true },
+    });
+  }
 }

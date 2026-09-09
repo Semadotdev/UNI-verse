@@ -16,6 +16,7 @@ export interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
+  dataTour?: string;
 }
 
 const SIZE_CLASSES: Record<string, string> = {
@@ -31,6 +32,7 @@ export function Modal({
   children,
   footer,
   size = "md",
+  dataTour,
 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -110,6 +112,7 @@ export function Modal({
       <div
         ref={panelRef}
         tabIndex={-1}
+        data-tour={dataTour}
         className={cn(
           "relative w-full rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl",
           "animate-modal-panel",

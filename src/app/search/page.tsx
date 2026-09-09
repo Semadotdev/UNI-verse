@@ -220,7 +220,7 @@ export default function SearchPage() {
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-sm opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
 
-            <div className="relative flex items-center bg-bg-raised border border-border rounded-xl overflow-hidden group-focus-within:border-primary/50 transition-colors duration-300">
+            <div data-tour="search-input" className="relative flex items-center bg-bg-raised border border-border rounded-xl overflow-hidden group-focus-within:border-primary/50 transition-colors duration-300">
               <div className="pl-4 text-muted-foreground group-focus-within:text-primary-light transition-colors">
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8" />
@@ -520,20 +520,22 @@ export default function SearchPage() {
       )}
 
       {/* Results */}
-      <MangaGrid
-        manga={results}
-        loading={loading}
-        page={page}
-        totalPages={totalPages}
-        hasMore={hasMore}
-        onPageChange={handlePageChange}
-        showChapterBadges
-        emptyMessage={
-          mode === "search" && !loading
-            ? `No results found for "${query}"`
-            : "No manga available"
-        }
-      />
+      <div data-tour="manga-results">
+        <MangaGrid
+          manga={results}
+          loading={loading}
+          page={page}
+          totalPages={totalPages}
+          hasMore={hasMore}
+          onPageChange={handlePageChange}
+          showChapterBadges
+          emptyMessage={
+            mode === "search" && !loading
+              ? `No results found for "${query}"`
+              : "No manga available"
+          }
+        />
+      </div>
     </div>
   );
 }

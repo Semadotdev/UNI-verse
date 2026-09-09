@@ -25,7 +25,10 @@ export default function MangaDetailPage() {
     { type: "add" | "move"; folderId: string | null } | null
   >(null);
   const [readChapters, setReadChapters] = useState<Set<string>>(new Set());
+  const [latestReadChapter, setLatestReadChapter] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ chapterId: string; x: number; y: number } | null>(null);
   const folderPickerRef = useRef<HTMLDivElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchManga(providerId, mangaId);
@@ -34,6 +37,10 @@ export default function MangaDetailPage() {
   useEffect(() => {
     ApiClient.get<{ readChapters: string[] }>(`/api/history/read?providerId=${providerId}&mangaId=${mangaId}`)
       .then((data) => setReadChapters(new Set(data.readChapters)))
+      .catch(() => {});
+
+    ApiClient.get<{ latestReadChapter: string | null }>(`/api/history/latest?providerId=${providerId}&mangaId=${mangaId}`)
+      .then((data) => setLatestReadChapter(data.latestReadChapter))
       .catch(() => {});
   }, [providerId, mangaId]);
 
@@ -48,6 +55,17 @@ export default function MangaDetailPage() {
     window.addEventListener("mousedown", handler);
     return () => window.removeEventListener("mousedown", handler);
   }, [showFolderPicker, showAddFolderPicker]);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [contextMenu]);
 
   const libraryItem = library.find(
     (item) => item.providerId === providerId && item.mangaId === mangaId
@@ -93,6 +111,26 @@ export default function MangaDetailPage() {
   const currentFolderName = libraryItem?.folderId
     ? folders.find((f) => f.id === libraryItem.folderId)?.name ?? "Unknown"
     : "Uncategorized";
+
+  const handleMarkAsUnread = async (chapterId: string) => {
+    try {
+      await ApiClient.delete(`/api/history/read?providerId=${providerId}&mangaId=${mangaId}&chapterId=${chapterId}`);
+      setReadChapters((prev) => {
+        const next = new Set(prev);
+        next.delete(chapterId);
+        return next;
+      });
+      addToast("Marked as unread", "success");
+    } catch {
+      addToast("Failed to mark as unread", "error");
+    }
+    setContextMenu(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, chapterId: string) => {
+    e.preventDefault();
+    setContextMenu({ chapterId, x: e.clientX, y: e.clientY });
+  };
 
   const toTime = (d: Date | string | null | undefined) =>
     d ? new Date(d).getTime() || 0 : 0;
@@ -184,6 +222,7 @@ export default function MangaDetailPage() {
             <button
               onClick={() => inLibrary ? setShowFolderPicker(!showFolderPicker) : setShowAddFolderPicker(!showAddFolderPicker)}
               disabled={pendingAction !== null}
+              data-tour="add-to-library"
               className={`w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
                 inLibrary
                   ? "bg-bg-overlay text-zinc-300 hover:bg-border border border-border hover:border-border-hover"
@@ -204,7 +243,7 @@ export default function MangaDetailPage() {
 
             {/* Folder picker for existing library item */}
             {inLibrary && showFolderPicker && (
-              <div ref={folderPickerRef} className="mt-2 bg-zinc-800 border border-zinc-600 rounded-xl shadow-xl py-1 min-w-[180px]">
+              <div ref={folderPickerRef} data-tour="folder-pick" className="mt-2 bg-zinc-800 border border-zinc-600 rounded-xl shadow-xl py-1 min-w-[180px]">
                 <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
                   Move to folder
                 </div>
@@ -250,7 +289,7 @@ export default function MangaDetailPage() {
 
             {/* Folder picker when adding to library */}
             {showAddFolderPicker && !inLibrary && (
-              <div ref={folderPickerRef} className="mt-2 bg-zinc-800 border border-zinc-600 rounded-xl shadow-xl py-1 min-w-[180px]">
+              <div ref={folderPickerRef} data-tour="folder-pick" className="mt-2 bg-zinc-800 border border-zinc-600 rounded-xl shadow-xl py-1 min-w-[180px]">
                 <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
                   Add to folder
                 </div>
@@ -286,6 +325,19 @@ export default function MangaDetailPage() {
                   </button>
                 ))}
               </div>
+            )}
+
+            {/* Continue Reading button */}
+            {latestReadChapter && (
+              <Link
+                href={`/read/${providerId}/${mangaId}/${latestReadChapter}`}
+                className="w-full mt-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25 hover:border-emerald-500/40"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Continue Reading
+              </Link>
             )}
           </div>
 
@@ -446,12 +498,14 @@ export default function MangaDetailPage() {
                   ) : (
                     <div className="space-y-1 max-h-[500px] overflow-y-auto rounded-xl border border-border bg-bg-raised/50">
                       {sortedChapters.map((chapter) => (
-                        <Link
+                        <div
                           key={chapter.id}
-                          href={`/read/${providerId}/${mangaId}/${chapter.id}`}
                           className="flex items-center justify-between px-4 py-3 hover:bg-bg-overlay/70 transition-all duration-150 group border-b border-border/50 last:border-0"
                         >
-                          <div className="min-w-0 flex-1">
+                          <Link
+                            href={`/read/${providerId}/${mangaId}/${chapter.id}`}
+                            className="min-w-0 flex-1"
+                          >
                             <p className={`text-sm font-medium truncate transition-colors ${
                               readChapters.has(chapter.id)
                                 ? "text-primary-light"
@@ -464,7 +518,7 @@ export default function MangaDetailPage() {
                             {chapter.title && chapter.number !== null && (
                               <p className="text-xs text-muted-foreground truncate mt-0.5">{chapter.title}</p>
                             )}
-                          </div>
+                          </Link>
                           <div className="flex items-center gap-3 shrink-0 ml-4">
                             {chapter.scanlationGroup && (
                               <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary-light border border-primary/20 hidden sm:block">
@@ -476,11 +530,25 @@ export default function MangaDetailPage() {
                                 ? new Date(chapter.uploadDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                                 : ""}
                             </span>
+                            {readChapters.has(chapter.id) && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleContextMenu(e, chapter.id)}
+                                className="p-1 rounded-lg text-muted-foreground hover:text-zinc-300 hover:bg-zinc-700 transition-colors"
+                                aria-label="Chapter options"
+                              >
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                                  <circle cx="12" cy="5" r="1.5" />
+                                  <circle cx="12" cy="12" r="1.5" />
+                                  <circle cx="12" cy="19" r="1.5" />
+                                </svg>
+                              </button>
+                            )}
                             <svg className="h-4 w-4 text-muted-foreground group-hover:text-primary-light transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <polyline points="9 18 15 12 9 6" />
                             </svg>
                           </div>
-                        </Link>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -490,6 +558,27 @@ export default function MangaDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Context menu for mark as unread */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-zinc-800 border border-zinc-600 rounded-lg shadow-xl py-1 min-w-[160px]"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            onClick={() => handleMarkAsUnread(contextMenu.chapterId)}
+            className="w-full px-3 py-2 text-sm text-left hover:bg-zinc-700 text-zinc-300 flex items-center gap-2"
+          >
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18" />
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+            </svg>
+            Mark as Unread
+          </button>
+        </div>
+      )}
     </div>
   );
 }

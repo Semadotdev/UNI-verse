@@ -66,7 +66,7 @@ export function ProviderDropdown() {
     <Dropdown
       align="left"
       trigger={
-        <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200">
+        <button data-tour="provider" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200">
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
             <line x1="2" y1="12" x2="22" y2="12" />

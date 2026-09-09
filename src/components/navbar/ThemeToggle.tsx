@@ -28,6 +28,7 @@ export function ThemeToggle() {
 
   return (
     <button
+      data-tour="theme"
       onClick={() => updateTheme(next)}
       className="flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200"
       title={`Switch theme to ${label}`}

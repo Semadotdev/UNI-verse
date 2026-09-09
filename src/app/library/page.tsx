@@ -231,6 +231,7 @@ export default function LibraryPage() {
 
         <button
           onClick={() => setShowCreateModal(true)}
+          data-tour="new-folder"
           className="px-3 py-1.5 text-sm rounded-lg border border-dashed border-zinc-600 hover:border-zinc-400 text-muted hover:text-zinc-100 transition-colors whitespace-nowrap"
         >
           + New Folder
@@ -339,7 +340,9 @@ export default function LibraryPage() {
             </button>
             <button
               onClick={handleCreateFolder}
-              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all"
+              data-tour="folder-create"
+              disabled={!newFolderName.trim()}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create
             </button>

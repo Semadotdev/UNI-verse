@@ -98,6 +98,10 @@ export default function RegisterPage() {
       if (isUserAdult) {
         setShowNsfwModal(true);
       } else {
+        try {
+          localStorage.removeItem("uni-verse-welcome-seen");
+          localStorage.removeItem("uni-verse-tour-completed");
+        } catch {}
         addToast("Account created successfully!", "success");
         router.push("/");
         router.refresh();
@@ -113,6 +117,10 @@ export default function RegisterPage() {
     setPendingNsfw(allow);
     try {
       await ApiClient.put("/api/me", { showNsfw: allow });
+      try {
+        localStorage.removeItem("uni-verse-welcome-seen");
+        localStorage.removeItem("uni-verse-tour-completed");
+      } catch {}
       addToast("Account created successfully!", "success");
       router.push("/");
       router.refresh();
