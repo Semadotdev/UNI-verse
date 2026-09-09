@@ -53,11 +53,6 @@ function LoginForm() {
         return;
       }
 
-      try {
-        localStorage.removeItem("uni-verse-welcome-seen");
-        localStorage.removeItem("uni-verse-tour-completed");
-      } catch {}
-
       if (next && next.startsWith("/")) {
         router.push(next);
       } else {

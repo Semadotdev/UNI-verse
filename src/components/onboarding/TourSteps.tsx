@@ -9,6 +9,7 @@ export interface TourHighlight {
   advanceOn?: "click" | "disappear";
   userNavigates?: boolean;
   allowSelectors?: string[];
+  desktopOnly?: boolean;
 }
 
 export const INTERACTIVE_STEPS: TourHighlight[] = [
@@ -91,6 +92,7 @@ export const TOOLTIP_STEPS: TourHighlight[] = [
     placement: "bottom",
     page: "*",
     phase: "tooltip",
+    desktopOnly: true,
   },
   {
     id: "theme",
@@ -100,6 +102,7 @@ export const TOOLTIP_STEPS: TourHighlight[] = [
     placement: "bottom",
     page: "*",
     phase: "tooltip",
+    desktopOnly: true,
   },
   {
     id: "notifications",
@@ -109,6 +112,7 @@ export const TOOLTIP_STEPS: TourHighlight[] = [
     placement: "bottom",
     page: "*",
     phase: "tooltip",
+    desktopOnly: true,
   },
   {
     id: "leaderboard",
@@ -118,6 +122,7 @@ export const TOOLTIP_STEPS: TourHighlight[] = [
     placement: "bottom",
     page: "*",
     phase: "tooltip",
+    desktopOnly: true,
   },
 ];
 

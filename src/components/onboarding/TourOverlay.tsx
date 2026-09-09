@@ -415,6 +415,13 @@ export function TourOverlay() {
     return () => clearInterval(interval);
   }, [waitingForElement, isActive, currentStep, advanceStep, isInteractive]);
 
+  useEffect(() => {
+    if (!isActive || !currentStep || isInteractive) return;
+    if (currentStep.desktopOnly && window.innerWidth < 768) {
+      advanceStep();
+    }
+  }, [isActive, currentStep, isInteractive, advanceStep]);
+
   if (!isActive || !currentStep || !isStepOnCurrentPage) return null;
 
   return (
