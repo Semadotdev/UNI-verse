@@ -1,9 +1,11 @@
 import type { ReactionType } from '@/domain/constants/reactions';
+import type { ProfileTheme } from '@/domain/constants/profile-themes';
 
 export interface PostAuthor {
   username: string | null;
   name: string | null;
   avatarUrl: string | null;
+  theme?: ProfileTheme | null;
 }
 
 export interface PostFolderCover {

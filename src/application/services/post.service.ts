@@ -8,6 +8,7 @@ import { isAdult } from '@/lib/age';
 import { buildFeedWhere, type PostFeed } from '@/application/services/post-feed-where';
 import { isNsfwCategories } from '@/domain/constants/nsfw-genres';
 import { isReactionType, REACTIONS, type ReactionType } from '@/domain/constants/reactions';
+import { resolveProfileTheme } from '@/domain/constants/profile-themes';
 import { createLogger } from '@/shared/utils/logger';
 import {
   feedCacheKey,
@@ -28,7 +29,14 @@ const MAX_IMAGES = 4;
 const MAX_BODY_LENGTH = 5000;
 
 const POST_INCLUDE = {
-  author: { select: { username: true, name: true, avatarUrl: true } },
+  author: {
+    select: {
+      username: true,
+      name: true,
+      avatarUrl: true,
+      settings: { select: { profileThemeId: true } },
+    },
+  },
   images: { orderBy: { position: 'asc' as const }, select: { url: true } },
   folder: {
     select: {
@@ -327,7 +335,12 @@ export class PostService {
       body: p.body,
       createdAt: p.createdAt.toISOString(),
       images: p.images.map((i) => ({ url: i.url })),
-      author: p.author,
+      author: {
+        username: p.author.username,
+        name: p.author.name,
+        avatarUrl: p.author.avatarUrl,
+        theme: resolveProfileTheme(p.author.settings?.profileThemeId),
+      },
       folder: p.folder
         ? {
             id: p.folder.id,

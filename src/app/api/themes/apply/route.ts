@@ -6,6 +6,7 @@ import {
 } from '@/application/services/themes.service';
 import { successResponse, errorResponse } from '@/domain/types/api';
 import { getAuthUserId } from '@/lib/auth';
+import { invalidateFeedCache } from '@/infrastructure/cache/feed-cache';
 
 const themesService = new ThemesService();
 
@@ -20,6 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const state = await themesService.apply(userId, themeId);
+    invalidateFeedCache();
     return NextResponse.json(successResponse(state));
   } catch (error) {
     if (error instanceof ThemeNotFoundError) {

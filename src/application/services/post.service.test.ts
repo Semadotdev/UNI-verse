@@ -315,6 +315,32 @@ describe("PostService.listFeed", () => {
       expect.objectContaining({ where: expect.objectContaining({ id: { in: [] } }) })
     );
   });
+
+  it("includes the author's profile theme when one is set", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);
+    vi.mocked(prisma.post.findMany).mockResolvedValue([
+      postRow({
+        author: { username: "alice", name: null, avatarUrl: null, settings: { profileThemeId: "sunset" } },
+      }),
+    ] as never);
+    vi.mocked(prisma.post.count).mockResolvedValue(1);
+    vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
+
+    const res = await svc.listFeed("u1", 1, 10);
+
+    expect(res.data[0].author.theme?.id).toBe("sunset");
+  });
+
+  it("defaults to the default theme when the author has none set", async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: "u1", role: "user", birthDate: ADULT } as never);
+    vi.mocked(prisma.post.findMany).mockResolvedValue([postRow()] as never);
+    vi.mocked(prisma.post.count).mockResolvedValue(1);
+    vi.mocked(prisma.like.groupBy).mockResolvedValue([] as never);
+
+    const res = await svc.listFeed("u1", 1, 10);
+
+    expect(res.data[0].author.theme?.id).toBe("default");
+  });
 });
 
 describe("PostService.react", () => {
