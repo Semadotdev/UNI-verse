@@ -5,6 +5,7 @@ export const BUILTIN_PROVIDER_IDS = [
   'manganato',
   'asurascans',
   'comick',
+  'fanfox',
   'mangafire',
   'manhwa18',
   'webtoons',

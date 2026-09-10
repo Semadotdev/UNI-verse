@@ -8,7 +8,9 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 const REFERER_MAP: Record<string, string> = {
   'comix.to': 'https://comix.to/',
+  'fmcdn.mfcdn.net': 'https://fanfox.net/',
   'webtoon-phinf.pstatic.net': 'https://www.webtoons.com/',
+  'zjcdn.mangafox.me': 'https://fanfox.net/',
 };
 
 function getRefererForUrl(url: string): string | undefined {
