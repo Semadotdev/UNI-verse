@@ -93,7 +93,7 @@ export function ReaderSettingsDrawer({
         />
       </Section>
 
-      <Section title="Display">
+      <Section title="Background">
         <div className="flex gap-1.5 py-2">
           {backgroundOptions.map((opt) => (
             <button
@@ -109,28 +109,9 @@ export function ReaderSettingsDrawer({
             />
           ))}
         </div>
+      </Section>
 
-        <SettingRow label={`Brightness: ${Math.round(settings.brightness * 100)}%`}>
-          <Slider
-            min={0.5}
-            max={1}
-            step={0.05}
-            value={settings.brightness}
-            onChange={(v) => set({ brightness: v })}
-            label="Brightness"
-            className="w-24"
-          />
-        </SettingRow>
-
-        <SettingRow label="Scale Type">
-          <SegmentedControl
-            options={scaleTypeOptions}
-            value={settings.scaleType}
-            onChange={(v) => set({ scaleType: v })}
-            className="w-40"
-          />
-        </SettingRow>
-
+      <Section title="Toggles">
         <SettingRow label="Crop Borders">
           <Toggle
             checked={settings.cropBorders}
@@ -145,6 +126,34 @@ export function ReaderSettingsDrawer({
           />
         </SettingRow>
 
+        <SettingRow label="Show Page Number">
+          <Toggle
+            checked={settings.showPageNumber}
+            onChange={(v) => set({ showPageNumber: v })}
+          />
+        </SettingRow>
+
+        <SettingRow label="Double-Tap Zoom">
+          <Toggle
+            checked={settings.doubleTapZoom}
+            onChange={(v) => set({ doubleTapZoom: v })}
+          />
+        </SettingRow>
+      </Section>
+
+      <Section title="Sliders">
+        <SettingRow label={`Brightness: ${Math.round(settings.brightness * 100)}%`}>
+          <Slider
+            min={0.5}
+            max={1}
+            step={0.05}
+            value={settings.brightness}
+            onChange={(v) => set({ brightness: v })}
+            label="Brightness"
+            className="w-24"
+          />
+        </SettingRow>
+
         <SettingRow label={`Side Padding: ${settings.sidePadding}px`}>
           <Slider
             min={0}
@@ -154,15 +163,6 @@ export function ReaderSettingsDrawer({
             onChange={(v) => set({ sidePadding: v })}
             label="Side Padding"
             className="w-24"
-          />
-        </SettingRow>
-      </Section>
-
-      <Section title="Reading">
-        <SettingRow label="Show Page Number">
-          <Toggle
-            checked={settings.showPageNumber}
-            onChange={(v) => set({ showPageNumber: v })}
           />
         </SettingRow>
 
@@ -178,28 +178,8 @@ export function ReaderSettingsDrawer({
           />
         </SettingRow>
 
-        <SettingRow label="Double-Tap Zoom">
-          <Toggle
-            checked={settings.doubleTapZoom}
-            onChange={(v) => set({ doubleTapZoom: v })}
-          />
-        </SettingRow>
-      </Section>
-
-      <Section title="Mobile Navigation">
-        <SettingRow label="Chapter Navigation">
-          <SegmentedControl
-            options={mobileNavOptions}
-            value={settings.mobileNavMode}
-            onChange={(v) => set({ mobileNavMode: v as "buttons" | "swipe" | "both" })}
-            className="w-44"
-          />
-        </SettingRow>
-      </Section>
-
-      {!isPaged && (
-        <Section title="Auto Scroll">
-          <SettingRow label={`Speed: ${settings.autoScrollSpeed}`}>
+        {!isPaged && (
+          <SettingRow label={`Auto Scroll Speed: ${settings.autoScrollSpeed}`}>
             <Slider
               min={1}
               max={10}
@@ -210,11 +190,29 @@ export function ReaderSettingsDrawer({
               className="w-24"
             />
           </SettingRow>
-        </Section>
-      )}
+        )}
+      </Section>
 
-      {isPaged && (
-        <Section title="Paged Reader">
+      <Section title="Controls">
+        <SettingRow label="Scale Type">
+          <SegmentedControl
+            options={scaleTypeOptions}
+            value={settings.scaleType}
+            onChange={(v) => set({ scaleType: v })}
+            className="w-40"
+          />
+        </SettingRow>
+
+        <SettingRow label="Mobile Navigation">
+          <SegmentedControl
+            options={mobileNavOptions}
+            value={settings.mobileNavMode}
+            onChange={(v) => set({ mobileNavMode: v as "buttons" | "swipe" | "both" })}
+            className="w-44"
+          />
+        </SettingRow>
+
+        {isPaged && (
           <SettingRow label="Tap Zone Layout">
             <SegmentedControl
               options={[
@@ -227,7 +225,9 @@ export function ReaderSettingsDrawer({
               className="w-36"
             />
           </SettingRow>
+        )}
 
+        {isPaged && (
           <SettingRow label="Zoom Start Position">
             <SegmentedControl
               options={[
@@ -240,8 +240,8 @@ export function ReaderSettingsDrawer({
               className="w-40"
             />
           </SettingRow>
-        </Section>
-      )}
+        )}
+      </Section>
 
       {onResetOverrides && hasOverrides && (
         <div className="pt-3 border-t border-border">
