@@ -1,7 +1,8 @@
-const CACHE_NAME = "uni-verse-v3";
+const CACHE_NAME = "uni-verse-v4";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
+  "/apple-touch-icon-180x180.png",
   "/icon-192.png",
   "/icon-512.png",
 ];
