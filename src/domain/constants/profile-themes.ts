@@ -4,7 +4,8 @@ export type ThemeAnimation =
   | { kind: "embers"; emberCount: number }
   | { kind: "waves"; layers: { color: string; duration: number }[] }
   | { kind: "neon"; duration: number }
-  | { kind: "matrix"; columnCount: number };
+  | { kind: "matrix"; columnCount: number }
+  | { kind: "webtoon"; cloudCount: number };
 
 export interface ProfileTheme {
   id: string;
@@ -16,6 +17,7 @@ export interface ProfileTheme {
     accent: string;
   };
   animation?: ThemeAnimation;
+  character?: { src: string; poster: string };
 }
 
 export const DEFAULT_THEME_ID = "default";
@@ -116,6 +118,15 @@ export const PROFILE_THEMES: ProfileTheme[] = [
     price: 300,
     colors: { background: ["#040a04", "#081408"], accent: "#22c55e" },
     animation: { kind: "matrix", columnCount: 4 },
+  },
+  {
+    id: "kayden",
+    name: "Kayden's Rooftop",
+    description: "A sun-soaked rooftop in a webtoon, with your favorite orange tabby watching over it.",
+    price: 300,
+    colors: { background: ["#a9d6ef", "#fbeecf"], accent: "#463524" },
+    animation: { kind: "webtoon", cloudCount: 3 },
+    character: { src: "/themes/kayden.gif", poster: "/themes/kayden-poster.png" },
   },
 ];
 

@@ -30,7 +30,7 @@ describe("profile-themes catalog", () => {
 });
 
 describe("animated theme catalog", () => {
-  const ANIMATED_KINDS = ["aurora", "stardust", "embers", "waves", "neon", "matrix"];
+  const ANIMATED_KINDS = ["aurora", "stardust", "embers", "waves", "neon", "matrix", "webtoon"];
   const STATIC_IDS = ["default", "sunset", "ocean", "midnight", "neon"];
 
   it("includes at least one animated theme", () => {
@@ -74,6 +74,35 @@ describe("animated theme catalog", () => {
       if (a.kind === "waves") expect(a.layers.length).toBeGreaterThan(0);
       if (a.kind === "neon") expect(a.duration).toBeGreaterThan(0);
       if (a.kind === "matrix") expect(a.columnCount).toBeGreaterThan(0);
+      if (a.kind === "webtoon") expect(a.cloudCount).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("webtoon character theme", () => {
+  it("has a kayden entry priced at 300 with webtoon animation", () => {
+    const t = getProfileTheme("kayden");
+    expect(t?.price).toBe(300);
+    expect(t?.animation?.kind).toBe("webtoon");
+  });
+
+  it("uses a warm webtoon palette", () => {
+    const t = getProfileTheme("kayden");
+    expect(t?.colors.background[0]).toBe("#a9d6ef");
+    expect(t?.colors.background[1]).toBe("#fbeecf");
+    expect(t?.colors.accent).toBe("#463524");
+  });
+
+  it("points character art at precached theme assets", () => {
+    const t = getProfileTheme("kayden");
+    expect(t?.character?.src.startsWith("/themes/")).toBe(true);
+    expect(t?.character?.poster.startsWith("/themes/")).toBe(true);
+  });
+
+  it("only marks kayden as a character theme", () => {
+    for (const t of PROFILE_THEMES) {
+      if (t.id === "kayden") continue;
+      expect(t.character).toBeUndefined();
     }
   });
 });
