@@ -21,7 +21,13 @@ const AURORA_POSITIONS = [
 
 const MATRIX_GLYPHS = "0123456789カタナザクラ";
 
-function renderLayers(animation: ThemeAnimation, accent: string): React.ReactNode {
+const WEBTOON_SPARKS = [
+  { left: "22%", top: "28%", duration: 3.2, delay: -1.1 },
+  { left: "72%", top: "20%", duration: 2.6, delay: -2.2 },
+  { left: "48%", top: "62%", duration: 2.9, delay: -0.4 },
+] as const;
+
+function renderLayers(animation: ThemeAnimation, colors: ProfileTheme["colors"]): React.ReactNode {
   switch (animation.kind) {
     case "aurora":
       return animation.blobs.map((b, i) => {
@@ -97,7 +103,7 @@ function renderLayers(animation: ThemeAnimation, accent: string): React.ReactNod
           />
           <div
             className="theme-neon-ring"
-            style={{ borderColor: accent } as CSSProperties}
+            style={{ borderColor: colors.accent } as CSSProperties}
           />
         </>
       );
@@ -118,15 +124,73 @@ function renderLayers(animation: ThemeAnimation, accent: string): React.ReactNod
           {MATRIX_GLYPHS}
         </div>
       ));
+
+    case "webtoon":
+      return (
+        <>
+          <div
+            className="theme-webtoon-sky"
+            style={{
+              background: `linear-gradient(180deg, ${colors.background[0]} 0%, #eef7fb 55%, ${colors.background[1]} 100%)`,
+            }}
+          />
+          <div className="theme-webtoon-sun" />
+          <div className="theme-webtoon-rays" />
+          {Array.from({ length: animation.cloudCount }, (_, i) => (
+            <div
+              key={i}
+              className="theme-webtoon-cloud"
+              style={
+                {
+                  "--cx": `${[18, 62, 38][i]}%`,
+                  "--cd": `${[26, 34, 40][i]}s`,
+                  "--cdd": `${[0, -8, -20][i]}s`,
+                } as CSSProperties
+              }
+            />
+          ))}
+          <div className="theme-webtoon-halftone" />
+          <div className="theme-webtoon-grain" />
+          {WEBTOON_SPARKS.map((sp, i) => (
+            <div
+              key={"s" + i}
+              className="theme-webtoon-spark"
+              style={
+                {
+                  left: sp.left,
+                  top: sp.top,
+                  animationDuration: `${sp.duration}s`,
+                  animationDelay: `${sp.delay}s`,
+                } as CSSProperties
+              }
+            />
+          ))}
+          <div className="theme-webtoon-speed" />
+          <span className="theme-webtoon-annot">purr~</span>
+        </>
+      );
   }
 }
 
 export function ProfileThemeBackground({ theme, className }: ProfileThemeBackgroundProps) {
-  if (!theme.animation) return null;
+  if (!theme.animation && !theme.character) return null;
+  const lightBg = theme.animation?.kind === "webtoon";
   return (
-    <div aria-hidden className={"theme-bg" + (className ? " " + className : "")}>
-      <div className="absolute inset-0 bg-black/25" />
-      {renderLayers(theme.animation, theme.colors.accent)}
-    </div>
+    <>
+      <div aria-hidden className={"theme-bg" + (className ? " " + className : "")}>
+        {!lightBg && <div className="absolute inset-0 bg-black/25" />}
+        {theme.animation && renderLayers(theme.animation, theme.colors)}
+      </div>
+      {theme.character && (
+        <div
+          aria-hidden
+          className="theme-sticker"
+          style={{ borderColor: theme.colors.accent }}
+        >
+          <img className="theme-sticker-gif" src={theme.character.src} alt="" draggable={false} />
+          <img className="theme-sticker-poster" src={theme.character.poster} alt="" draggable={false} />
+        </div>
+      )}
+    </>
   );
 }
