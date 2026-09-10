@@ -67,6 +67,19 @@ export default function MangaDetailPage() {
     return () => window.removeEventListener("mousedown", handler);
   }, [contextMenu]);
 
+  useEffect(() => {
+    if (!contextMenu) return;
+    const el = contextMenuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.right > window.innerWidth - 8) {
+      setContextMenu((c) => (c ? { ...c, x: Math.max(8, window.innerWidth - rect.width - 8) } : c));
+    }
+    if (rect.bottom > window.innerHeight - 8) {
+      setContextMenu((c) => (c ? { ...c, y: Math.max(8, window.innerHeight - rect.height - 8) } : c));
+    }
+  }, [contextMenu]);
+
   const libraryItem = library.find(
     (item) => item.providerId === providerId && item.mangaId === mangaId
   );
