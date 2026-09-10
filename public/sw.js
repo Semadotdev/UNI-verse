@@ -1,10 +1,12 @@
-const CACHE_NAME = "uni-verse-v4";
+const CACHE_NAME = "uni-verse-v5";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
   "/apple-touch-icon-180x180.png",
   "/icon-192.png",
   "/icon-512.png",
+  "/themes/kayden.gif",
+  "/themes/kayden-poster.png",
 ];
 
 self.addEventListener("install", (event) => {
