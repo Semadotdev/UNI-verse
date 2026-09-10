@@ -17,6 +17,12 @@ interface ReaderSettingsDrawerProps {
   hasOverrides?: boolean;
 }
 
+const mobileNavOptions = [
+  { value: "buttons", label: "Buttons" },
+  { value: "swipe", label: "Swipe" },
+  { value: "both", label: "Both" },
+];
+
 const readingModeOptions = [
   { value: "long-strip", label: "Long Strip" },
   { value: "paged-ltr", label: "Paged LTR" },
@@ -176,6 +182,17 @@ export function ReaderSettingsDrawer({
           <Toggle
             checked={settings.doubleTapZoom}
             onChange={(v) => set({ doubleTapZoom: v })}
+          />
+        </SettingRow>
+      </Section>
+
+      <Section title="Mobile Navigation">
+        <SettingRow label="Chapter Navigation">
+          <SegmentedControl
+            options={mobileNavOptions}
+            value={settings.mobileNavMode}
+            onChange={(v) => set({ mobileNavMode: v })}
+            className="w-44"
           />
         </SettingRow>
       </Section>

@@ -22,6 +22,7 @@ export interface Settings {
   splitWidePages: boolean;
   pagePreloadCount: number;
   autoScrollSpeed: number;
+  mobileNavMode: "buttons" | "swipe" | "both";
 }
 
 interface SettingsContextType {
@@ -49,11 +50,13 @@ const defaultSettings: Settings = {
   splitWidePages: true,
   pagePreloadCount: 2,
   autoScrollSpeed: 3,
+  mobileNavMode: "swipe",
 };
 
 const STORAGE_KEY = "uni-verse-settings";
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
 const VALID_READING_MODES = ["long-strip", "paged-ltr", "paged-rtl", "paged-vertical"];
+const VALID_MOBILE_NAV_MODES = ["buttons", "swipe", "both"];
 
 function saveSettings(settings: Settings) {
   try {
@@ -69,6 +72,10 @@ function migrateSettings(stored: unknown): Settings {
 
   if (!VALID_READING_MODES.includes(migrated.readingMode)) {
     migrated.readingMode = defaultSettings.readingMode;
+  }
+
+  if (!VALID_MOBILE_NAV_MODES.includes(migrated.mobileNavMode)) {
+    migrated.mobileNavMode = defaultSettings.mobileNavMode;
   }
 
   return migrated;

@@ -141,9 +141,10 @@ export default function ReaderPage() {
     return () => { if (toolbarTimeout.current) clearTimeout(toolbarTimeout.current); };
   }, []);
 
-  // Show a one-time swipe hint on the first chapter read (mobile only)
+  // Show a one-time swipe hint on the first chapter read (mobile only, when swipe is enabled)
   useEffect(() => {
     if (window.innerWidth >= 768) return;
+    if (settings.mobileNavMode === "buttons") return;
     if (localStorage.getItem(SWIPE_HINT_KEY)) return;
     if (loading || pages.length === 0) return;
 
@@ -153,7 +154,7 @@ export default function ReaderPage() {
     swipeIndicatorTimeout.current = setTimeout(() => setShowSwipeIndicator(false), 3000);
 
     return () => { if (swipeIndicatorTimeout.current) clearTimeout(swipeIndicatorTimeout.current); };
-  }, [isLongStrip, loading, pages.length]);
+  }, [isLongStrip, loading, pages.length, settings.mobileNavMode]);
 
   // Dismiss the hint on first touch
   useEffect(() => {
@@ -278,6 +279,8 @@ export default function ReaderPage() {
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (settings.mobileNavMode === "buttons") return;
+
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     const absDx = Math.abs(dx);
@@ -313,7 +316,7 @@ export default function ReaderPage() {
         }
       }
     }
-  }, [isLongStrip, settings.readingMode, currentPage, pages.length, nextChapter, prevChapter, goToPage, goToChapter]);
+  }, [isLongStrip, settings.readingMode, settings.mobileNavMode, currentPage, pages.length, nextChapter, prevChapter, goToPage, goToChapter]);
 
   if (loading) {
     return (
@@ -487,7 +490,10 @@ export default function ReaderPage() {
         <div className="md:hidden fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex items-center gap-3 px-4 py-2 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 animate-fade-in pointer-events-none">
           <ChevronLeft className="h-4 w-4 text-white/50" />
           <span className="text-xs text-white/60 font-medium tracking-wide whitespace-nowrap">
-            {isLongStrip ? "Swipe for next / prev chapter" : "Swipe to turn pages"}
+            {settings.mobileNavMode === "both"
+              ? (isLongStrip ? "Swipe or use arrows for chapters" : "Swipe or use arrows for pages")
+              : (isLongStrip ? "Swipe for next / prev chapter" : "Swipe to turn pages")
+            }
           </span>
           <ChevronRight className="h-4 w-4 text-white/50" />
         </div>
@@ -571,7 +577,7 @@ export default function ReaderPage() {
         </div>
       )}
 
-      {/* Floating prev/next arrows — desktop only for paged, all sizes for long-strip */}
+      {/* Floating prev/next arrows — desktop always, mobile when buttons mode */}
       {isLongStrip ? (
         <>
           {prevChapter && (
@@ -580,9 +586,11 @@ export default function ReaderPage() {
                 e.stopPropagation();
                 goToChapter(prevChapter);
               }}
-              className={`hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
-                (toolbarsVisible || autoScrollActive) ? "opacity-0 pointer-events-none" : "opacity-100"
-              }`}
+              className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
+                (toolbarsVisible || autoScrollActive)
+                  ? "opacity-100 pointer-events-auto md:opacity-0 md:pointer-events-none"
+                  : "opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto"
+              } ${settings.mobileNavMode === "swipe" ? "hidden md:flex" : "flex"}`}
               title="Previous chapter"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -594,9 +602,11 @@ export default function ReaderPage() {
                 e.stopPropagation();
                 goToChapter(nextChapter);
               }}
-              className={`hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
-                (toolbarsVisible || autoScrollActive) ? "opacity-0 pointer-events-none" : "opacity-100"
-              }`}
+              className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
+                (toolbarsVisible || autoScrollActive)
+                  ? "opacity-100 pointer-events-auto md:opacity-0 md:pointer-events-none"
+                  : "opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto"
+              } ${settings.mobileNavMode === "swipe" ? "hidden md:flex" : "flex"}`}
               title="Next chapter"
             >
               <ChevronRight className="h-5 w-5" />
@@ -611,9 +621,11 @@ export default function ReaderPage() {
                 e.stopPropagation();
                 goToPage(currentPage - 1);
               }}
-              className={`hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
-                toolbarsVisible ? "opacity-0 pointer-events-none" : "opacity-100"
-              }`}
+              className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
+                toolbarsVisible
+                  ? "opacity-100 pointer-events-auto md:opacity-0 md:pointer-events-none"
+                  : "opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto"
+              } ${settings.mobileNavMode === "swipe" ? "hidden md:flex" : "flex"}`}
               title="Previous page"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -625,9 +637,11 @@ export default function ReaderPage() {
                 e.stopPropagation();
                 goToPage(currentPage + 1);
               }}
-              className={`hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
-                toolbarsVisible ? "opacity-0 pointer-events-none" : "opacity-100"
-              }`}
+              className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 h-10 w-10 items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md transition-all duration-300 text-muted hover:text-zinc-200 ${
+                toolbarsVisible
+                  ? "opacity-100 pointer-events-auto md:opacity-0 md:pointer-events-none"
+                  : "opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto"
+              } ${settings.mobileNavMode === "swipe" ? "hidden md:flex" : "flex"}`}
               title="Next page"
             >
               <ChevronRight className="h-5 w-5" />
