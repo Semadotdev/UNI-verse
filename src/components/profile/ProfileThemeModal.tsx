@@ -123,7 +123,9 @@ export function ProfileThemeModal({
             className={
               previewIsDefault
                 ? "rounded-2xl border border-border bg-bg-raised p-5"
-                : "relative overflow-hidden rounded-2xl border border-border p-5"
+                : previewTheme?.character
+                  ? "relative overflow-visible rounded-2xl border border-border p-5 theme-sticker-card"
+                  : "relative overflow-hidden rounded-2xl border border-border p-5"
             }
             style={previewBg}
           >

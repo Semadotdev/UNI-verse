@@ -172,6 +172,12 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
     : "";
 
   const themed = activeTheme.id !== DEFAULT_THEME_ID;
+  const isWebtoon = activeTheme.animation?.kind === "webtoon";
+  const hasSticker = Boolean(activeTheme.character);
+  const heroCardClass = hasSticker
+    ? "relative overflow-visible rounded-2xl border border-border p-5 theme-sticker-card"
+    : "relative overflow-hidden rounded-2xl border border-border p-5";
+  const bioClass = isWebtoon ? "text-zinc-700" : "text-zinc-200";
   const themeBg = themed
     ? { background: `linear-gradient(135deg, ${activeTheme.colors.background[0]}, ${activeTheme.colors.background[1]})` }
     : undefined;
@@ -182,7 +188,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
     : undefined;
 
   return (
-    <div>
+    <div className={isWebtoon ? "profile-theme-webtoon" : undefined}>
       <div className="relative">
         {isOwn && (
           <div className="absolute top-3 right-3 z-10">
@@ -206,9 +212,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         )}
         <div
           className={
-            themed
-              ? "relative overflow-hidden rounded-2xl border border-border p-5"
-              : "rounded-2xl border border-border bg-bg-raised p-5"
+            themed ? heroCardClass : "rounded-2xl border border-border bg-bg-raised p-5"
           }
           style={themeBg}
         >
@@ -233,7 +237,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
               <p className="text-sm text-muted">@{profile.username}</p>
             )}
             {profile.bio && (
-              <p className="mt-2 text-sm text-zinc-200 whitespace-pre-wrap break-words">{profile.bio}</p>
+              <p className={"mt-2 text-sm whitespace-pre-wrap break-words " + bioClass}>{profile.bio}</p>
             )}
             <div className="mt-3 flex items-center gap-4 text-xs text-muted">
               {joinedAt && <span>Joined {joinedAt}</span>}
@@ -248,7 +252,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         </div>
       </div>
 
-      <div className="relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
+      <div className={"relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4" + (isWebtoon ? " webtoon-panel" : "")}>
           {isOwn ? (
             <>
               <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300">
@@ -294,7 +298,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         </div>
       </div>
 
-      <h2 className="mt-6 mb-3 text-sm font-semibold text-muted uppercase tracking-wider">Posts</h2>
+      <h2 className={"mt-6 mb-3 text-sm font-semibold text-muted uppercase tracking-wider" + (isWebtoon ? " webtoon-section-title" : "")}>Posts</h2>
 
       {loading ? (
         <div className="space-y-4">
@@ -306,7 +310,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
           <p className="text-muted text-sm">No posts yet.</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className={"space-y-4" + (isWebtoon ? " webtoon-posts" : "")}>
           {posts.map((post) => (
             <PostCard
               key={post.id}
