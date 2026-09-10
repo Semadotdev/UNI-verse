@@ -690,9 +690,14 @@ body {
   padding: 10px 12px;
   border-radius: 12px;
 }
-.profile-theme-webtoon .webtoon-panel span,
-.profile-theme-webtoon .webtoon-panel button {
+.profile-theme-webtoon .webtoon-panel span {
   color: #463524;
+}
+.profile-theme-webtoon .webtoon-panel button:not(.bg-primary) {
+  color: #463524;
+}
+.profile-theme-webtoon .webtoon-panel button:not(.bg-primary):hover {
+  color: #2e2418;
 }
 .profile-theme-webtoon .webtoon-panel .border-border {
   border-color: rgba(70, 53, 36, 0.3);

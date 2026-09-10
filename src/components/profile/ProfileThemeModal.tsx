@@ -111,6 +111,7 @@ export function ProfileThemeModal({
   const previewOutline = previewTheme
     ? { borderColor: previewTheme.colors.accent, color: previewTheme.colors.accent }
     : undefined;
+  const previewIsWebtoon = previewTheme?.animation?.kind === "webtoon";
   const joinedAt = profile.createdAt
     ? new Date(profile.createdAt).toLocaleDateString(undefined, { month: "long", year: "numeric" })
     : "";
@@ -147,7 +148,7 @@ export function ProfileThemeModal({
                 </p>
                 {profile.username && <p className="text-sm text-muted">@{profile.username}</p>}
                 {profile.bio && (
-                  <p className="mt-2 text-sm text-zinc-200 whitespace-pre-wrap break-words line-clamp-3">
+                  <p className={"mt-2 text-sm whitespace-pre-wrap break-words line-clamp-3 " + (previewIsWebtoon ? "text-zinc-700" : "text-zinc-200")}>
                     {profile.bio}
                   </p>
                 )}
