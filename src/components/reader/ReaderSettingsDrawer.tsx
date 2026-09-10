@@ -191,7 +191,7 @@ export function ReaderSettingsDrawer({
           <SegmentedControl
             options={mobileNavOptions}
             value={settings.mobileNavMode}
-            onChange={(v) => set({ mobileNavMode: v })}
+            onChange={(v) => set({ mobileNavMode: v as "buttons" | "swipe" | "both" })}
             className="w-44"
           />
         </SettingRow>
