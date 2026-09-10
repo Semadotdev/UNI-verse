@@ -62,6 +62,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
 
   const theme = post.author.theme;
   const themed = !!theme && theme.id !== "default";
+  const isWebtoon = themed && theme?.animation?.kind === "webtoon";
   const themeStyle = themed
     ? { background: `linear-gradient(135deg, ${theme.colors.background[0]}, ${theme.colors.background[1]})` }
     : undefined;
@@ -132,7 +133,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
 
   return (
     <article
-      className={`rounded-2xl border border-border p-4 ${themed ? "" : "bg-bg-raised"}`}
+      className={`rounded-2xl border border-border p-4 ${themed ? (isWebtoon ? "theme-card-webtoon" : "") : "bg-bg-raised"}`}
       style={themeStyle}
     >
       <div className="flex items-center gap-2">

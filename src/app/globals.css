@@ -658,22 +658,15 @@ body {
   top: -12px;
   right: -8px;
   width: clamp(34px, 30%, 128px);
-  aspect-ratio: 96 / 103;
-  padding: 5px;
-  background: #fff;
-  border: 2.5px solid #463524;
-  border-radius: 14px;
-  box-shadow: 0 5px 12px rgba(70, 53, 36, 0.28);
+  line-height: 0;
   pointer-events: none;
 }
 .theme-sticker img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 9px;
+  height: auto;
 }
-.theme-sticker-poster { display: none; }
+.theme-sticker .theme-sticker-poster { display: none; }
 /* rounded corners stay rounded when the card turns overflow-visible */
 .theme-sticker-card .theme-bg { border-radius: inherit; }
 
@@ -686,28 +679,50 @@ body {
 /* Kayden's Rooftop — section treatments */
 .profile-theme-webtoon .webtoon-panel {
   border: 1.5px solid rgba(70, 53, 36, 0.25);
-  background: rgba(255, 255, 255, 0.55);
   padding: 10px 12px;
   border-radius: 12px;
 }
-.profile-theme-webtoon .webtoon-panel span {
-  color: #463524;
-}
-.profile-theme-webtoon .webtoon-panel button:not(.bg-primary) {
-  color: #463524;
-}
-.profile-theme-webtoon .webtoon-panel button:not(.bg-primary):hover {
-  color: #2e2418;
-}
-.profile-theme-webtoon .webtoon-panel .border-border {
-  border-color: rgba(70, 53, 36, 0.3);
-}
 .profile-theme-webtoon .webtoon-posts {
-  background: rgba(255, 255, 255, 0.55);
   border: 1.5px solid rgba(70, 53, 36, 0.25);
   border-radius: 16px;
   padding: 14px;
 }
+/* The webtoon profile reads as light "paper + brown ink". In light mode the
+   paper surfaces are light and the ink overrides stay on for the action chips.
+   In dark mode let those chips keep their dark bg-bg-overlay surfaces and the
+   app's light-zinc utility text so nothing becomes brown-on-black. */
+html:not(.dark) .profile-theme-webtoon .webtoon-panel { background: rgba(255, 255, 255, 0.55); }
+html:not(.dark) .profile-theme-webtoon .webtoon-panel span { color: #463524; }
+html:not(.dark) .profile-theme-webtoon .webtoon-panel button:not(.bg-primary) { color: #463524; }
+html:not(.dark) .profile-theme-webtoon .webtoon-panel button:not(.bg-primary):hover { color: #2e2418; }
+html:not(.dark) .profile-theme-webtoon .webtoon-panel .border-border { border-color: rgba(70, 53, 36, 0.3); }
+/* Webtoon paper surfaces (sky-gradient hero, post cards) are light in BOTH app
+   modes, so their text must always use brown ink, never the light-gray
+   utilities that are tuned for the app's dark background. */
+.profile-theme-webtoon .webtoon-posts {
+  background: rgba(255, 255, 255, 0.42);
+}
+.profile-theme-webtoon .webtoon-posts .text-zinc-100,
+.profile-theme-webtoon .webtoon-posts .text-zinc-200,
+.profile-theme-webtoon .webtoon-posts .text-muted { color: #000000; }
+/* author name carries an inline accent color; force black so every post text
+   is black in the webtoon theme, in dark and light mode alike */
+.profile-theme-webtoon .webtoon-posts .text-zinc-100 { color: #000000 !important; }
+.profile-theme-webtoon .webtoon-posts article { border-color: rgba(70, 53, 36, 0.25); }
+.profile-theme-webtoon .theme-hero .text-muted { color: #463524; }
+/* Themed post cards render wherever the author's posts appear (feed included),
+   outside the profile wrapper. Webtoon cards use a light sky-gradient, so all
+   their text must be black in both app modes; the author name's inline accent
+   color is forced black too. */
+.theme-card-webtoon { border-color: rgba(70, 53, 36, 0.25); }
+.theme-card-webtoon .text-zinc-100,
+.theme-card-webtoon .text-zinc-200,
+.theme-card-webtoon .text-muted { color: #000000; }
+.theme-card-webtoon .text-zinc-100 { color: #000000 !important; }
+/* Post action icons (react/comment/menu) are black on the light card; on hover
+   the dark bg-bg-overlay persists but the icon must flip white to stay visible
+   (dark mode only — light mode keeps a black icon on its light hover bg). */
+html.dark .theme-card-webtoon .text-muted:hover { color: #ffffff; }
 .profile-theme-webtoon .webtoon-section-title {
   display: inline-block;
   position: relative;

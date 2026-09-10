@@ -175,8 +175,8 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
   const isWebtoon = activeTheme.animation?.kind === "webtoon";
   const hasSticker = Boolean(activeTheme.character);
   const heroCardClass = hasSticker
-    ? "relative overflow-visible rounded-2xl border border-border p-5 theme-sticker-card"
-    : "relative overflow-hidden rounded-2xl border border-border p-5";
+    ? "theme-hero relative overflow-visible rounded-2xl border border-border p-5 theme-sticker-card"
+    : "theme-hero relative overflow-hidden rounded-2xl border border-border p-5";
   const bioClass = isWebtoon ? "text-zinc-700" : "text-zinc-200";
   const themeBg = themed
     ? { background: `linear-gradient(135deg, ${activeTheme.colors.background[0]}, ${activeTheme.colors.background[1]})` }
@@ -184,7 +184,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
   const themeAccent = themed ? { borderColor: activeTheme.colors.accent } : undefined;
   const themeText = themed ? { color: activeTheme.colors.accent } : undefined;
   const themeOutline = themed
-    ? { borderColor: activeTheme.colors.accent, color: activeTheme.colors.accent }
+    ? { borderColor: activeTheme.colors.accent }
     : undefined;
 
   return (
