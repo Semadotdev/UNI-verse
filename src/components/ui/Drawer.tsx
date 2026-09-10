@@ -58,7 +58,7 @@ export function Drawer({ open, onClose, title, children, className }: DrawerProp
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="overflow-y-auto h-[calc(100vh-3.25rem)] p-4 scrollbar-none">
+        <div className="overflow-y-auto h-[calc(100vh-3.25rem)] p-4 pb-24 md:pb-4 scrollbar-none">
           {children}
         </div>
       </div>
