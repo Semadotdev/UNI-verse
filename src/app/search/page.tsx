@@ -70,6 +70,53 @@ const WEBTOONS_GENRES = [
   { label: "Thriller", value: "thriller" },
 ];
 
+const FANFOX_GENRES = [
+  { label: "Action", value: "action" },
+  { label: "Adult", value: "adult" },
+  { label: "Adventure", value: "adventure" },
+  { label: "Comedy", value: "comedy" },
+  { label: "Doujinshi", value: "doujinshi" },
+  { label: "Drama", value: "drama" },
+  { label: "Ecchi", value: "ecchi" },
+  { label: "Fantasy", value: "fantasy" },
+  { label: "Gender Bender", value: "gender-bender" },
+  { label: "Harem", value: "harem" },
+  { label: "Historical", value: "historical" },
+  { label: "Horror", value: "horror" },
+  { label: "Josei", value: "josei" },
+  { label: "Lolicon", value: "lolicon" },
+  { label: "Martial Arts", value: "martial-arts" },
+  { label: "Mature", value: "mature" },
+  { label: "Mecha", value: "mecha" },
+  { label: "Mystery", value: "mystery" },
+  { label: "One Shot", value: "one-shot" },
+  { label: "Psychological", value: "psychological" },
+  { label: "Romance", value: "romance" },
+  { label: "School Life", value: "school-life" },
+  { label: "Sci-fi", value: "sci-fi" },
+  { label: "Seinen", value: "seinen" },
+  { label: "Shoujo", value: "shoujo" },
+  { label: "Shoujo Ai", value: "shoujo-ai" },
+  { label: "Shounen", value: "shounen" },
+  { label: "Shounen Ai", value: "shounen-ai" },
+  { label: "Shotacon", value: "shotacon" },
+  { label: "Slice of Life", value: "slice-of-life" },
+  { label: "Smut", value: "smut" },
+  { label: "Sports", value: "sports" },
+  { label: "Supernatural", value: "supernatural" },
+  { label: "Tragedy", value: "tragedy" },
+  { label: "Webtoons", value: "webtoons" },
+  { label: "Yaoi", value: "yaoi" },
+  { label: "Yuri", value: "yuri" },
+];
+
+const FANFOX_SORTS = [
+  { value: "date", label: "Chapter" },
+  { value: "popularity", label: "Popularity" },
+  { value: "new", label: "New" },
+  { value: "rating", label: "Ratings" },
+];
+
 export default function SearchPage() {
   const {
     results, loading, error, search, loadLatest, loadPopular,
@@ -142,6 +189,22 @@ export default function SearchPage() {
   const handleStatusChange = useCallback(
     (status: string) => {
       const newFilters = { ...filters, status };
+      setFilters(newFilters);
+      setPage(1);
+      if (browseMode === "recent") {
+        loadLatest(selectedProvider, 1, newFilters);
+      } else if (mode === "search" && query) {
+        search(query, [selectedProvider], 1, newFilters);
+      } else {
+        loadPopular(selectedProvider, 1, newFilters);
+      }
+    },
+    [selectedProvider, browseMode, mode, query, loadLatest, loadPopular, search, filters, setFilters, setPage]
+  );
+
+  const handleSortChange = useCallback(
+    (sort: string) => {
+      const newFilters = { ...filters, sort };
       setFilters(newFilters);
       setPage(1);
       if (browseMode === "recent") {
@@ -312,7 +375,7 @@ export default function SearchPage() {
               onChange={handleBrowseModeChange}
             />
           )}
-          {(selectedProvider === "manhwa18" || selectedProvider === "asurascans" || selectedProvider === "webtoons") && (
+          {(selectedProvider === "manhwa18" || selectedProvider === "asurascans" || selectedProvider === "webtoons" || selectedProvider === "fanfox") && (
             <button
               type="button"
               onClick={() => setFiltersOpen(!filtersOpen)}
@@ -494,6 +557,87 @@ export default function SearchPage() {
                     onClick={() => handleMinChaptersChange(opt.value)}
                     className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
                       filters.minChapters === opt.value
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible filter panel (fanfox) */}
+        {selectedProvider === "fanfox" && filtersOpen && (
+          <div className="mt-4 p-4 rounded-xl border border-border bg-bg-raised animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-muted mb-2">Genres</label>
+                <Combobox
+                  options={FANFOX_GENRES}
+                  selected={filters.tags}
+                  onChange={handleTagsChange}
+                  searchPlaceholder="Search genres..."
+                />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-muted mb-2">Popular genres</label>
+              <div className="flex flex-wrap gap-2">
+                {FANFOX_GENRES.slice(0, 12).map((tag) => (
+                  <button
+                    key={tag.value}
+                    type="button"
+                    onClick={() => handleQuickTag(tag.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.tags.includes(tag.value)
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-muted mb-2">Status</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "", label: "All" },
+                  { value: "ongoing", label: "Ongoing" },
+                  { value: "completed", label: "Completed" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleStatusChange(opt.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.status === opt.value
+                        ? "bg-primary text-white"
+                        : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-muted mb-2">Sort</label>
+              <div className="flex flex-wrap gap-2">
+                {FANFOX_SORTS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleSortChange(opt.value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+                      filters.sort === opt.value
                         ? "bg-primary text-white"
                         : "bg-bg-overlay text-muted hover:text-zinc-300 border border-border hover:border-border-hover"
                     }`}

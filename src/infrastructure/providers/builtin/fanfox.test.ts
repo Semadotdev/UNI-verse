@@ -2,14 +2,75 @@ import { describe, expect, it } from 'vitest';
 import { MangaStatus } from '@/domain/entities/manga';
 import { decodeImageUrls } from './fanfox/packer';
 import {
+  buildDirectoryUrl,
   buildSearchUrl,
   orderSearchResults,
   parseChapterList,
   parseMangaDetails,
   parseMangaList,
+  toGenreSlug,
 } from './fanfox';
 
 const PACKED_SAMPLE = `eval(function(p,a,c,k,e,d){e=function(c){return(c<a?"":e(parseInt(c/a)))+((c=c%a)>35?String.fromCharCode(c+29):c.toString(36))};if(!''.replace(/^/,String)){while(c--)d[e(c)]=k[c]||e(c);k=[function(e){return d[e]}];e=function(){return'\\\\w+'};c=1;};while(c--)if(k[c])p=p.replace(new RegExp('\\\\b'+e(c)+'\\\\b','g'),k[c]);return p;}('u f(){2 k="//8.9.a/c/5/4/7-3.0/h";2 1=["/e-m.g?j=n&b=6","/e-3.g?j=l&b=6"];o(2 i=0;i<1.t;i++){s(i==0){1[i]="//8.9.a/c/5/4/7-3.0/h"+1[i];p}1[i]=k+1[i]}q 1}2 d;d=f();r=0;',31,31,'|pvalue|var|001|106|manga|1789056000|01|zjcdn|mangafox|me|ttl|store||uone_piece_v001|dm5imagefun|jpg|compressed||token|pix|423291db15813fa60340b93798faa10cb66290bb|000|1163d8172cfe03c63c1a22bd9998193b88804bb4|for|continue|return|currentimageid|if|length|function'.split('|'),0,{}))`;
+
+describe('toGenreSlug', () => {
+  it('normalizes common genre labels to directory slugs', () => {
+    expect(toGenreSlug('Action')).toBe('action');
+    expect(toGenreSlug('Slice of Life')).toBe('slice-of-life');
+    expect(toGenreSlug('Sci-fi')).toBe('sci-fi');
+    expect(toGenreSlug('Martial Arts')).toBe('martial-arts');
+    expect(toGenreSlug('Shounen Ai')).toBe('shounen-ai');
+  });
+
+  it('returns null for unknown genres', () => {
+    expect(toGenreSlug('Not A Real Genre')).toBeNull();
+  });
+});
+
+describe('buildDirectoryUrl', () => {
+  it('returns null when no genre resolves', () => {
+    expect(buildDirectoryUrl()).toBeNull();
+    expect(buildDirectoryUrl({ tags: ['Unknown'] })).toBeNull();
+    expect(buildDirectoryUrl({ sort: 'rating' })).toBeNull();
+    expect(buildDirectoryUrl({ status: 'completed' })).toBeNull();
+  });
+
+  it('builds a genre directory url', () => {
+    expect(buildDirectoryUrl({ tags: ['Action'] })).toBe(
+      'https://newm.fanfox.net/directory/action/'
+    );
+  });
+
+  it('appends the completed status segment', () => {
+    expect(buildDirectoryUrl({ tags: ['Romance'], status: 'completed' })).toBe(
+      'https://newm.fanfox.net/directory/romance/completed/'
+    );
+  });
+
+  it('appends the ongoing status segment', () => {
+    expect(buildDirectoryUrl({ tags: ['Romance'], status: 'Ongoing' })).toBe(
+      'https://newm.fanfox.net/directory/romance/ongoing/'
+    );
+  });
+
+  it('appends sort variants', () => {
+    expect(buildDirectoryUrl({ tags: ['Action'], sort: 'rating' })).toBe(
+      'https://newm.fanfox.net/directory/action/?rating'
+    );
+    expect(buildDirectoryUrl({ tags: ['Action'], sort: 'popularity' })).toBe(
+      'https://newm.fanfox.net/directory/action/?po'
+    );
+    expect(buildDirectoryUrl({ tags: ['Action'], sort: 'newest' })).toBe(
+      'https://newm.fanfox.net/directory/action/?news'
+    );
+  });
+
+  it('combines genre, status, and sort', () => {
+    expect(
+      buildDirectoryUrl({ tags: ['Action'], status: 'ongoing', sort: 'popularity' })
+    ).toBe('https://newm.fanfox.net/directory/action/ongoing/?po');
+  });
+});
 
 describe('buildSearchUrl', () => {
   it('uses the title query param, lowercases, and encodes the query', () => {

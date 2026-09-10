@@ -34,6 +34,62 @@ const IMAGE_REFERER = `${BASE_URL}/`;
 const LIST_PAGE_SIZE = 12;
 const BATCH_DELAY_MS = 500;
 
+const GENRE_SLUGS = [
+  'action', 'adventure', 'comedy', 'drama', 'fantasy', 'martial-arts',
+  'shounen', 'horror', 'supernatural', 'harem', 'psychological', 'romance',
+  'school-life', 'shoujo', 'mystery', 'sci-fi', 'seinen', 'tragedy', 'ecchi',
+  'sports', 'slice-of-life', 'mature', 'shoujo-ai', 'webtoons', 'doujinshi',
+  'one-shot', 'smut', 'yaoi', 'josei', 'historical', 'shounen-ai',
+  'gender-bender', 'adult', 'yuri', 'mecha', 'lolicon', 'shotacon',
+] as const;
+
+export function toGenreSlug(tag: string): string | null {
+  const slug = tag.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return GENRE_SLUGS.includes(slug as (typeof GENRE_SLUGS)[number]) ? slug : null;
+}
+
+function toDirectorySort(sort?: string): string | null {
+  if (!sort) return null;
+  switch (sort.toLowerCase()) {
+    case 'popularity':
+    case 'views':
+    case 'trending':
+      return '?po';
+    case 'new':
+    case 'newest':
+      return '?news';
+    case 'rating':
+    case 'ratings':
+    case 'toprated':
+      return '?rating';
+    default:
+      return null;
+  }
+}
+
+function normalizeStatus(status?: string): string | null {
+  if (!status) return null;
+  const s = status.toLowerCase();
+  if (s === 'completed' || s === 'complete') return 'completed';
+  if (s === 'ongoing') return 'ongoing';
+  return null;
+}
+
+export function buildDirectoryUrl(
+  filters?: ProviderFilters
+): string | null {
+  const genre = filters?.tags?.map(toGenreSlug).find(Boolean);
+  if (!genre) return null;
+
+  let url = `${BASE_URL}/directory/${genre}/`;
+  const status = normalizeStatus(filters?.status);
+  if (status) url += `${status}/`;
+  const sort = toDirectorySort(filters?.sort);
+  if (sort) url += sort;
+
+  return url;
+}
+
 function absolute(url: string): string {
   if (!url) return '';
   return url.startsWith('//') ? `https:${url}` : url;
@@ -280,17 +336,34 @@ export class FanFoxProvider implements Provider {
 
   async getPopular(
     page = 1,
-    _filters?: ProviderFilters
+    filters?: ProviderFilters
   ): Promise<PaginatedResult<Manga>> {
-    const html = await fetchHtml(`${BASE_URL}/ranking/`);
+    const dirUrl = buildDirectoryUrl(filters);
+
+    let url: string;
+    if (dirUrl) {
+      url = filters?.sort ? dirUrl : `${dirUrl}?po`;
+    } else {
+      url = `${BASE_URL}/ranking/`;
+    }
+
+    const html = await fetchHtml(url);
     const items = parseMangaList(html, this.id);
     return { data: items, page, totalPages: 1, hasMore: false };
   }
 
   async getLatest(
     page = 1,
-    _filters?: ProviderFilters
+    filters?: ProviderFilters
   ): Promise<PaginatedResult<Manga>> {
+    const dirUrl = buildDirectoryUrl(filters);
+
+    if (dirUrl) {
+      const html = await fetchHtml(dirUrl);
+      const items = parseMangaList(html, this.id);
+      return { data: items, page, totalPages: 1, hasMore: false };
+    }
+
     const html = await fetchHtml(`${BASE_URL}/releases/${page}.html`);
     const items = parseMangaList(html, this.id);
     const hasMore = items.length >= LIST_PAGE_SIZE;

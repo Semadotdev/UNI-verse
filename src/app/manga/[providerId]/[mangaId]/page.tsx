@@ -18,7 +18,7 @@ export default function MangaDetailPage() {
   const { manga, chapters, loading, error, fetchManga } = useManga();
   const { isInLibrary, addToLibrary, removeFromLibrary, library, folders, moveToFolder } = useLibrary();
   const { addToast } = useToast();
-  const [sortBy, setSortBy] = useState<"chapter" | "date">("chapter");
+  const [direction, setDirection] = useState<"desc" | "asc">("desc");
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [showAddFolderPicker, setShowAddFolderPicker] = useState(false);
   const [pendingAction, setPendingAction] = useState<
@@ -132,12 +132,9 @@ export default function MangaDetailPage() {
     setContextMenu({ chapterId, x: e.clientX, y: e.clientY });
   };
 
-  const toTime = (d: Date | string | null | undefined) =>
-    d ? new Date(d).getTime() || 0 : 0;
-
   const sortedChapters = [...chapters].sort((a, b) => {
-    if (sortBy === "chapter") return (b.number ?? 0) - (a.number ?? 0);
-    return toTime(b.uploadDate) - toTime(a.uploadDate);
+    if (direction === "asc") return (a.number ?? 0) - (b.number ?? 0);
+    return (b.number ?? 0) - (a.number ?? 0);
   });
 
   // Loading skeleton
@@ -459,31 +456,31 @@ export default function MangaDetailPage() {
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                     <h2 className="text-lg font-bold">
                       Chapters
                       <span className="text-muted font-normal text-sm ml-2">({chapters.length})</span>
                     </h2>
-                    <div className="flex gap-1.5 bg-bg-overlay rounded-lg p-1 border border-border">
+                    <div className="flex gap-1.5 bg-bg-overlay rounded-lg p-1 border border-border" role="group" aria-label="Chapter order">
                       <button
-                        onClick={() => setSortBy("chapter")}
+                        onClick={() => setDirection("desc")}
                         className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
-                          sortBy === "chapter"
+                          direction === "desc"
                             ? "bg-primary text-white shadow-sm"
                             : "text-muted hover:text-zinc-300"
                         }`}
                       >
-                        By Chapter
+                        Newest
                       </button>
                       <button
-                        onClick={() => setSortBy("date")}
+                        onClick={() => setDirection("asc")}
                         className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
-                          sortBy === "date"
+                          direction === "asc"
                             ? "bg-primary text-white shadow-sm"
                             : "text-muted hover:text-zinc-300"
                         }`}
                       >
-                        By Date
+                        Oldest
                       </button>
                     </div>
                   </div>
