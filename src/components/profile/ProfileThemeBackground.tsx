@@ -143,6 +143,8 @@ function renderLayers(animation: ThemeAnimation, colors: ProfileTheme["colors"])
               style={
                 {
                   "--cx": `${[18, 62, 38][i]}%`,
+                  "--ct": `${[20, 48, 8][i]}%`,
+                  "--co": `${[0.65, 0.5, 0.4][i]}`,
                   "--cd": `${[26, 34, 40][i]}s`,
                   "--cdd": `${[0, -8, -20][i]}s`,
                 } as CSSProperties

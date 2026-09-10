@@ -598,18 +598,16 @@ body {
 .theme-webtoon-cloud {
   position: absolute;
   left: var(--cx);
-  top: 20%;
+  top: var(--ct);
   width: 120px;
   height: 34px;
   border-radius: 999px;
   background: #fff;
-  opacity: 0.65;
+  opacity: var(--co);
   filter: blur(3px);
   animation: theme-cloud-drift var(--cd) ease-in-out infinite alternate;
   animation-delay: var(--cdd);
 }
-.theme-webtoon-cloud:nth-child(3) { top: 48%; opacity: 0.5; }
-.theme-webtoon-cloud:nth-child(4) { top: 8%; opacity: 0.4; }
 .theme-webtoon-halftone {
   position: absolute;
   inset: 0;
