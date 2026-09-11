@@ -132,6 +132,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
   };
 
   return (
+    <>
     <article
       className={`rounded-2xl border border-border p-4 ${themed ? (isWebtoon ? "theme-card-webtoon" : "") : "bg-bg-raised"}`}
       style={themeStyle}
@@ -253,27 +254,28 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
           onCountChange={(delta) => setCommentCount((c) => Math.max(0, c + delta))}
         />
       )}
+    </article>
 
-      <ReportModal
+    <ReportModal
         open={showReport}
         title="Report post"
         url={`/api/posts/${post.id}/report`}
         onClose={() => setShowReport(false)}
       />
-      <ConfirmModal
+    <ConfirmModal
         open={showDelete}
         title="Delete post"
         message="This will permanently delete the post and its comments."
         onClose={() => setShowDelete(false)}
         onConfirm={confirmDelete}
+    />
+    {folderOpen && post.folder && (
+      <FolderPreviewModal
+        postId={post.id}
+        folder={post.folder}
+        onClose={() => setFolderOpen(false)}
       />
-      {folderOpen && post.folder && (
-        <FolderPreviewModal
-          postId={post.id}
-          folder={post.folder}
-          onClose={() => setFolderOpen(false)}
-        />
-      )}
-    </article>
+    )}
+    </>
   );
 }

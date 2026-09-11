@@ -723,6 +723,10 @@ html:not(.dark) .profile-theme-webtoon .webtoon-panel .border-border { border-co
    the dark bg-bg-overlay persists but the icon must flip white to stay visible
    (dark mode only — light mode keeps a black icon on its light hover bg). */
 html.dark .theme-card-webtoon .text-muted:hover { color: #ffffff; }
+/* Folder attachment chips inside themed cards keep their dark raised surface,
+   so their name/count must stay light (the caption on the card stays black). */
+html.dark .theme-card-webtoon .folder-attachment .text-zinc-200 { color: #e4e4e7; }
+html.dark .theme-card-webtoon .folder-attachment .text-muted { color: #a1a1aa; }
 .profile-theme-webtoon .webtoon-section-title {
   display: inline-block;
   position: relative;
