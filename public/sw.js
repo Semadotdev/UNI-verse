@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-verse-v5";
+const CACHE_NAME = "uni-verse-v6";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
