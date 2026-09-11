@@ -5,7 +5,12 @@ export type ThemeAnimation =
   | { kind: "waves"; layers: { color: string; duration: number }[] }
   | { kind: "neon"; duration: number }
   | { kind: "matrix"; columnCount: number }
-  | { kind: "webtoon"; cloudCount: number };
+  | {
+      kind: "webtoon";
+      cloudCount: number;
+      scene?: "rooftop" | "kingdom";
+      annotation?: string;
+    };
 
 export interface ProfileTheme {
   id: string;
@@ -127,6 +132,15 @@ export const PROFILE_THEMES: ProfileTheme[] = [
     colors: { background: ["#a9d6ef", "#fbeecf"], accent: "#463524" },
     animation: { kind: "webtoon", cloudCount: 3 },
     character: { src: "/themes/kayden.gif", poster: "/themes/kayden-poster.png" },
+  },
+  {
+    id: "arthur",
+    name: "Arthur's Realm",
+    description: "A sunlit gilded kingdom in a fantasy webtoon, crowned by a grand gold castle with the ashen prince of Dicathen standing on the balcony.",
+    price: 300,
+    colors: { background: ["#f8e0a4", "#d9952f"], accent: "#a05a2c" },
+    animation: { kind: "webtoon", scene: "kingdom", cloudCount: 0, annotation: "always ascend" },
+    character: { src: "/themes/arthur.gif", poster: "/themes/arthur-poster.png" },
   },
 ];
 

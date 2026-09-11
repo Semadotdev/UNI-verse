@@ -188,7 +188,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
     : undefined;
 
   return (
-    <div className={isWebtoon ? "profile-theme-webtoon" : undefined}>
+    <div className={isWebtoon ? "profile-theme-webtoon" : undefined} data-theme={activeTheme.id}>
       <div className="relative">
         {isOwn && (
           <div className="absolute top-3 right-3 z-10">
@@ -252,7 +252,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         </div>
       </div>
 
-      <div className={"relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4" + (isWebtoon ? " webtoon-panel" : "")}>
+      <div className="relative mt-4 flex items-center justify-end gap-2 border-t border-border pt-4">
           {isOwn ? (
             <>
               <span className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border bg-bg-overlay text-zinc-300">
@@ -298,7 +298,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
         </div>
       </div>
 
-      <h2 className={"mt-6 mb-3 text-sm font-semibold text-muted uppercase tracking-wider" + (isWebtoon ? " webtoon-section-title" : "")}>Posts</h2>
+      <h2 className="mt-6 mb-3 text-sm font-semibold text-muted uppercase tracking-wider">Posts</h2>
 
       {loading ? (
         <div className="space-y-4">
@@ -310,7 +310,7 @@ export function ProfileView({ profile, viewer, isOwn, onEdit }: ProfileViewProps
           <p className="text-muted text-sm">No posts yet.</p>
         </div>
       ) : (
-        <div className={"space-y-4" + (isWebtoon ? " webtoon-posts" : "")}>
+        <div className="space-y-4">
           {posts.map((post) => (
             <PostCard
               key={post.id}

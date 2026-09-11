@@ -60,13 +60,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
   const [showDelete, setShowDelete] = useState(false);
   const [folderOpen, setFolderOpen] = useState(false);
 
-  const theme = post.author.theme;
-  const themed = !!theme && theme.id !== "default";
-  const isWebtoon = themed && theme?.animation?.kind === "webtoon";
-  const themeStyle = themed
-    ? { background: `linear-gradient(135deg, ${theme.colors.background[0]}, ${theme.colors.background[1]})` }
-    : undefined;
-  const accentStyle = themed ? { borderColor: theme.colors.accent, color: theme.colors.accent } : undefined;
+  
 
   const menuItems: { label: string; danger?: boolean; onClick: () => void }[] = [];
   if (post.canEdit && onEdit) {
@@ -133,10 +127,7 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
 
   return (
     <>
-    <article
-      className={`rounded-2xl border border-border p-4 ${themed ? (isWebtoon ? "theme-card-webtoon" : "") : "bg-bg-raised"}`}
-      style={themeStyle}
-    >
+    <article className="rounded-2xl border border-border p-4 bg-bg-raised">
       <div className="flex items-center gap-2">
         {!hideAuthor && (
           <>
@@ -150,11 +141,10 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
                   <img
                     src={post.author.avatarUrl}
                     alt=""
-                    className={`w-9 h-9 rounded-full object-cover bg-bg-overlay hover:opacity-80 transition-opacity ${themed ? "border-2" : ""}`}
-                    style={accentStyle}
+                    className="w-9 h-9 rounded-full object-cover bg-bg-overlay hover:opacity-80 transition-opacity"
                   />
                 ) : (
-                  <div className={`w-9 h-9 rounded-full bg-primary/30 hover:opacity-80 transition-opacity ${themed ? "border-2" : ""}`} style={accentStyle} />
+                  <div className="w-9 h-9 rounded-full bg-primary/30" />
                 )}
               </Link>
             ) : post.author.avatarUrl ? (
@@ -167,12 +157,11 @@ export function PostCard({ post, viewer, hideAuthor = false, onEdit, onDeleted }
                 <Link
                   href={`/profile/${encodeURIComponent(post.author.username)}`}
                   className="block text-sm font-semibold text-zinc-100 truncate hover:text-primary-light transition-colors"
-                  style={accentStyle}
                 >
                   {post.author.name ?? post.author.username}
                 </Link>
               ) : (
-                <p className="text-sm font-semibold text-zinc-100 truncate" style={accentStyle}>
+                <p className="text-sm font-semibold text-zinc-100 truncate">
                   {post.author.name ?? post.author.username ?? "Unknown"}
                 </p>
               )}

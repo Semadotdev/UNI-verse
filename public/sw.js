@@ -1,4 +1,4 @@
-const CACHE_NAME = "uni-verse-v6";
+const CACHE_NAME = "uni-verse-v7";
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -7,6 +7,8 @@ const STATIC_ASSETS = [
   "/icon-512.png",
   "/themes/kayden.gif",
   "/themes/kayden-poster.png",
+  "/themes/arthur.gif",
+  "/themes/arthur-poster.png",
 ];
 
 self.addEventListener("install", (event) => {

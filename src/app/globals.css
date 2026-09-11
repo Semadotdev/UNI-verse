@@ -676,78 +676,165 @@ body {
   .theme-sticker .theme-sticker-poster { display: block; }
 }
 
-/* Kayden's Rooftop — section treatments */
-.profile-theme-webtoon .webtoon-panel {
-  border: 1.5px solid rgba(70, 53, 36, 0.25);
-  padding: 10px 12px;
-  border-radius: 12px;
-}
-.profile-theme-webtoon .webtoon-posts {
-  border: 1.5px solid rgba(70, 53, 36, 0.25);
-  border-radius: 16px;
-  padding: 14px;
-}
-/* The webtoon profile reads as light "paper + brown ink". In light mode the
-   paper surfaces are light and the ink overrides stay on for the action chips.
-   In dark mode let those chips keep their dark bg-bg-overlay surfaces and the
-   app's light-zinc utility text so nothing becomes brown-on-black. */
-html:not(.dark) .profile-theme-webtoon .webtoon-panel { background: rgba(255, 255, 255, 0.55); }
-html:not(.dark) .profile-theme-webtoon .webtoon-panel span { color: #463524; }
-html:not(.dark) .profile-theme-webtoon .webtoon-panel button:not(.bg-primary) { color: #463524; }
-html:not(.dark) .profile-theme-webtoon .webtoon-panel button:not(.bg-primary):hover { color: #2e2418; }
-html:not(.dark) .profile-theme-webtoon .webtoon-panel .border-border { border-color: rgba(70, 53, 36, 0.3); }
-/* Webtoon paper surfaces (sky-gradient hero, post cards) are light in BOTH app
-   modes, so their text must always use brown ink, never the light-gray
-   utilities that are tuned for the app's dark background. */
-.profile-theme-webtoon .webtoon-posts {
-  background: rgba(255, 255, 255, 0.42);
-}
-.profile-theme-webtoon .webtoon-posts .text-zinc-100,
-.profile-theme-webtoon .webtoon-posts .text-zinc-200,
-.profile-theme-webtoon .webtoon-posts .text-muted { color: #000000; }
-/* author name carries an inline accent color; force black so every post text
-   is black in the webtoon theme, in dark and light mode alike */
-.profile-theme-webtoon .webtoon-posts .text-zinc-100 { color: #000000 !important; }
-.profile-theme-webtoon .webtoon-posts article { border-color: rgba(70, 53, 36, 0.25); }
 .profile-theme-webtoon .theme-hero .text-muted { color: #463524; }
-/* Themed post cards render wherever the author's posts appear (feed included),
-   outside the profile wrapper. Webtoon cards use a light sky-gradient, so all
-   their text must be black in both app modes; the author name's inline accent
-   color is forced black too. */
-.theme-card-webtoon { border-color: rgba(70, 53, 36, 0.25); }
-.theme-card-webtoon .text-zinc-100,
-.theme-card-webtoon .text-zinc-200,
-.theme-card-webtoon .text-muted { color: #000000; }
-.theme-card-webtoon .text-zinc-100 { color: #000000 !important; }
-/* Post action icons (react/comment/menu) are black on the light card; on hover
-   the dark bg-bg-overlay persists but the icon must flip white to stay visible
-   (dark mode only — light mode keeps a black icon on its light hover bg). */
-html.dark .theme-card-webtoon .text-muted:hover { color: #ffffff; }
-/* Folder attachment chips inside themed cards keep their dark raised surface,
-   so their name/count must stay light (the caption on the card stays black). */
-html.dark .theme-card-webtoon .folder-attachment .text-zinc-200 { color: #e4e4e7; }
-html.dark .theme-card-webtoon .folder-attachment .text-muted { color: #a1a1aa; }
-.profile-theme-webtoon .webtoon-section-title {
-  display: inline-block;
-  position: relative;
-  margin-left: 10px;
-  padding: 4px 14px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1.5px solid #463524;
-  color: #463524;
-  text-transform: none;
-  letter-spacing: normal;
+
+/* Arthur's Realm — kingdom scene (webtoon variant) */
+@keyframes theme-kingdom-ray-dance {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.85; }
 }
-.profile-theme-webtoon .webtoon-section-title::after {
-  content: "";
+@keyframes theme-kingdom-mist-drift {
+  from { transform: translateX(-5%) scaleY(1); }
+  to { transform: translateX(5%) scaleY(1.08); }
+}
+@keyframes theme-kingdom-mote-rise {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  18% { opacity: 0.9; }
+  70% { opacity: 0.45; }
+  100% { transform: translateY(-130px) scale(1.1); opacity: 0; }
+}
+@keyframes theme-kingdom-spark-twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(0.7); }
+  50% { opacity: 0.9; transform: scale(1.25); }
+}
+@keyframes theme-kingdom-rune-glow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.55; }
+}
+@keyframes theme-kingdom-goldpulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.95; }
+}
+.theme-kingdom-sky { position: absolute; inset: 0; }
+.theme-kingdom-sun {
   position: absolute;
-  left: 12px;
-  bottom: -5px;
-  width: 8px;
-  height: 8px;
-  background: #fff;
-  border-right: 1.5px solid #463524;
-  border-bottom: 1.5px solid #463524;
-  transform: rotate(45deg);
+  top: 24%;
+  right: 18%;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 226, 150, 0.85) 0%, rgba(255, 200, 110, 0.25) 45%, transparent 72%);
+}
+.theme-kingdom-rays {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: soft-light;
+  background: linear-gradient(105deg, transparent 36%, rgba(255, 235, 190, 0.5) 42%, transparent 52%),
+    linear-gradient(145deg, transparent 44%, rgba(255, 226, 170, 0.4) 50%, transparent 60%),
+    linear-gradient(70deg, transparent 52%, rgba(255, 235, 190, 0.35) 58%, transparent 66%);
+  animation: theme-kingdom-ray-dance 7s ease-in-out infinite;
+}
+.theme-kingdom-landscape {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 56%;
+  pointer-events: none;
+}
+.theme-kingdom-blur { filter: blur(2.5px); }
+.theme-kingdom-mist {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: 12%;
+  height: 110px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, transparent, rgba(244, 231, 205, 0.5), transparent);
+  filter: blur(10px);
+  animation: theme-kingdom-mist-drift 16s ease-in-out infinite alternate;
+}
+.theme-kingdom-halftone {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: radial-gradient(rgba(70, 53, 36, 0.5) 1px, transparent 1.4px);
+  background-size: 15px 15px;
+}
+.theme-kingdom-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.11;
+  mix-blend-mode: multiply;
+  background-image: repeating-conic-gradient(rgba(70, 53, 36, 0.05) 0 0.0001%, transparent 0 0.0002%);
+}
+.theme-kingdom-mote {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #d9a441;
+  box-shadow: 0 0 8px 1px rgba(217, 164, 65, 0.55);
+  opacity: 0;
+  animation: theme-kingdom-mote-rise 5s linear infinite;
+}
+.theme-kingdom-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffe79c;
+  box-shadow: 0 0 7px 1px rgba(255, 225, 150, 0.65);
+  animation: theme-kingdom-spark-twinkle 3.4s ease-in-out infinite;
+}
+.theme-kingdom-rune {
+  position: absolute;
+  font-size: 15px;
+  color: rgba(230, 200, 130, 0.9);
+  text-shadow: 0 0 8px rgba(230, 200, 130, 0.7);
+  pointer-events: none;
+  animation: theme-kingdom-rune-glow 6s ease-in-out infinite;
+}
+.theme-kingdom-goldline {
+  position: absolute;
+  top: 38px;
+  left: 14%;
+  right: 42%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(184, 137, 47, 0.75), transparent);
+  animation: theme-kingdom-goldpulse 8s ease-in-out infinite;
+}
+.theme-kingdom-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(184, 137, 47, 0.7);
+  opacity: 0.8;
+}
+.theme-kingdom-corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+.theme-kingdom-corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+.theme-kingdom-corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+.theme-kingdom-corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+.theme-kingdom-moat {
+  position: absolute;
+  bottom: 0;
+  width: 30%;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 231, 156, 0.55), transparent 72%);
+  opacity: 0.65;
+  mix-blend-mode: screen;
+  animation: theme-kingdom-goldpulse 7s ease-in-out infinite;
+}
+.theme-kingdom-platform {
+  position: absolute;
+  right: 4%;
+  bottom: 70%;
+  width: clamp(70px, 20%, 150px);
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(92, 72, 52, 0.4), rgba(46, 36, 26, 0.12) 55%, transparent 72%);
+  box-shadow: 0 -1px 0 rgba(235, 205, 150, 0.4), 0 10px 18px rgba(34, 25, 16, 0.22);
+}
+
+/* Arthur's Realm — profile hero treatments (scoped per theme id) */
+.profile-theme-webtoon[data-theme="arthur"] .theme-hero h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 0.02em;
+}
+.profile-theme-webtoon[data-theme="arthur"] .theme-sticker {
+  width: clamp(50px, 36%, 150px);
+  top: -16px;
+  right: -10px;
 }

@@ -74,7 +74,7 @@ describe("animated theme catalog", () => {
       if (a.kind === "waves") expect(a.layers.length).toBeGreaterThan(0);
       if (a.kind === "neon") expect(a.duration).toBeGreaterThan(0);
       if (a.kind === "matrix") expect(a.columnCount).toBeGreaterThan(0);
-      if (a.kind === "webtoon") expect(a.cloudCount).toBeGreaterThan(0);
+      if (a.kind === "webtoon" && a.scene !== "kingdom") expect(a.cloudCount).toBeGreaterThan(0);
     }
   });
 });
@@ -99,10 +99,15 @@ describe("webtoon character theme", () => {
     expect(t?.character?.poster.startsWith("/themes/")).toBe(true);
   });
 
-  it("only marks kayden as a character theme", () => {
+  it("marks only kayden and arthur as character themes", () => {
+    const CHARACTER_IDS = ["kayden", "arthur"];
     for (const t of PROFILE_THEMES) {
-      if (t.id === "kayden") continue;
-      expect(t.character).toBeUndefined();
+      if (CHARACTER_IDS.includes(t.id)) {
+        expect(t.character?.src.startsWith("/themes/")).toBe(true);
+        expect(t.character?.poster.startsWith("/themes/")).toBe(true);
+      } else {
+        expect(t.character).toBeUndefined();
+      }
     }
   });
 });
