@@ -18,7 +18,7 @@ interface PageCommentWithAuthor {
   pageIndex: number;
   pageY: number;
   author: { username: string | null; name: string | null; avatarUrl: string | null };
-  replies: PageCommentWithAuthor[];
+  replies?: PageCommentWithAuthor[];
 }
 
 function mapComment(c: PageCommentWithAuthor, viewerId: string, isAdmin: boolean): PageComment {
