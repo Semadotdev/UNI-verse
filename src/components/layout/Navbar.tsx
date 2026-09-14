@@ -386,31 +386,14 @@ export function Navbar() {
 
       {/* Desktop top nav */}
       <nav className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-16 items-center justify-between px-6 bg-bg-raised/95 backdrop-blur-md border-b border-border">
-        <div className="flex items-center gap-1.5">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <UNIverseLogo size={32} />
-            <span className="text-lg font-bold tracking-tight hidden lg:block">
-              <span className="text-zinc-100">UNI</span>
-              <span className="text-primary-light">-</span>
-              <span className="text-zinc-100">verse</span>
-            </span>
-          </Link>
-          <Link
-            href="/help"
-            aria-label="Help Center"
-            title="Help Center"
-            className={cn(
-              "flex items-center rounded-lg p-2 text-muted transition-all duration-200 hover:text-zinc-200 hover:bg-bg-overlay",
-              pathname === "/help" && "text-primary-light bg-primary/15"
-            )}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <path d="M12 17h.01" />
-            </svg>
-          </Link>
-        </div>
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <UNIverseLogo size={32} />
+          <span className="text-lg font-bold tracking-tight hidden lg:block">
+            <span className="text-zinc-100">UNI</span>
+            <span className="text-primary-light">-</span>
+            <span className="text-zinc-100">verse</span>
+          </span>
+        </Link>
 
         <div className="flex items-center gap-1">
           {navItems.map((item) => {
@@ -474,6 +457,23 @@ export function Navbar() {
               <span className="font-medium hidden lg:inline">Install</span>
             </button>
           )}
+
+          {/* Help */}
+          <Link
+            href="/help"
+            aria-label="Help Center"
+            title="Help Center"
+            className={cn(
+              "relative flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200 shrink-0",
+              pathname === "/help" && "text-primary-light bg-primary/15"
+            )}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <path d="M12 17h.01" />
+            </svg>
+          </Link>
 
           {/* Auth button */}
           {user ? (
