@@ -109,10 +109,26 @@ describe("PageCommentService.create", () => {
 
     const result = await svc.create("mangadex", "m1", "ch1", 0, 0.5, "hello!", "u1");
 
-    expect(result.body).toBe("test comment");
-    expect(result.pageIndex).toBe(0);
-    expect(result.pageY).toBe(0.5);
-    expect(prisma.pageComment.create).toHaveBeenCalledOnce();
+    const createCall = vi.mocked(prisma.pageComment.create).mock.calls[0][0];
+    expect(createCall.data.body).toBe("hello!");
+    expect(createCall.data.pageIndex).toBe(0);
+    expect(createCall.data.pageY).toBe(0.5);
+    expect(createCall.data.providerId).toBe("mangadex");
+    expect(createCall.data.mangaId).toBe("m1");
+    expect(createCall.data.chapterId).toBe("ch1");
+    expect(createCall.data.authorId).toBe("u1");
+    expect(result.id).toBe("c1");
+    expect(result.canDelete).toBe(true);
+  });
+
+  it("fires page comment notification on create", async () => {
+    vi.mocked(prisma.pageComment.create).mockResolvedValue(commentRow() as never);
+
+    await svc.create("mangadex", "m1", "ch1", 0, 0.5, "hello!", "u1");
+
+    expect(vi.mocked(svc["notificationService"].onPageCommentCreated)).toHaveBeenCalledWith(
+      "mangadex", "m1", "ch1", "u1", "c1"
+    );
   });
 
   it("throws on empty body", async () => {
@@ -193,5 +209,44 @@ describe("PageCommentService.delete", () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
 
     await expect(svc.delete("c1", "u-random")).rejects.toThrow("Forbidden");
+  });
+});
+
+describe("PageCommentService.report", () => {
+  let svc: PageCommentService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    svc = new PageCommentService();
+  });
+
+  it("upserts a report with the given reason", async () => {
+    vi.mocked(prisma.pageComment.findUnique).mockResolvedValue(
+      commentRow({ authorId: "u-other" }) as never
+    );
+
+    await svc.report("c1", "u-reporter", "spam");
+
+    expect(prisma.pageCommentReport.upsert).toHaveBeenCalledWith({
+      where: { commentId_reporterId: { commentId: "c1", reporterId: "u-reporter" } },
+      create: { commentId: "c1", reporterId: "u-reporter", reason: "spam" },
+      update: { reason: "spam" },
+    });
+  });
+
+  it("throws when the comment does not exist", async () => {
+    vi.mocked(prisma.pageComment.findUnique).mockResolvedValue(null as never);
+
+    await expect(svc.report("c1", "u-reporter")).rejects.toThrow("Comment not found");
+    expect(prisma.pageCommentReport.upsert).not.toHaveBeenCalled();
+  });
+
+  it("throws when reporting your own comment", async () => {
+    vi.mocked(prisma.pageComment.findUnique).mockResolvedValue(
+      commentRow({ authorId: "u-reporter" }) as never
+    );
+
+    await expect(svc.report("c1", "u-reporter")).rejects.toThrow("Cannot report your own comment");
+    expect(prisma.pageCommentReport.upsert).not.toHaveBeenCalled();
   });
 });
