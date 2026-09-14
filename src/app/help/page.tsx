@@ -14,9 +14,7 @@ export default function HelpPage() {
         Everything you need to get the most out of UNI-verse. Tap a topic to explore it.
       </p>
 
-      <div className="max-w-3xl">
-        <HelpGuide />
-      </div>
+      <HelpGuide />
     </div>
   );
 }
