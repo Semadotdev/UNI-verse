@@ -7,7 +7,7 @@ export interface ReaderProgressState {
  * Rewards near-completion reads that stop just short of the last page,
  * e.g. when the final image fails to load or the user swipes off early.
  */
-export const COMPLETION_THRESHOLD = 0.95;
+export const COMPLETION_THRESHOLD = 0.90;
 
 export function computeReaderProgress(
   currentPage: number,

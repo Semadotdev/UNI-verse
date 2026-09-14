@@ -1,6 +1,6 @@
 import type { PostAuthor } from '@/domain/entities/post';
 
-export type NotificationType = 'like' | 'comment' | 'reply' | 'friend' | 'post_removed' | 'comment_removed';
+export type NotificationType = 'like' | 'comment' | 'reply' | 'friend' | 'post_removed' | 'comment_removed' | 'page_comment' | 'page_reply';
 
 export interface AppNotification {
   id: string;

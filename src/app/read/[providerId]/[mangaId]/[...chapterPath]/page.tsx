@@ -16,6 +16,7 @@ import { computeReaderProgress } from "@/lib/reader-progress";
 import { claimChapterReward } from "@/lib/reward-queue";
 import type { Chapter } from "@/domain/entities/chapter";
 import type { Manga } from "@/domain/entities/manga";
+import type { PageComment } from "@/domain/entities/page-comment";
 
 const SWIPE_HINT_KEY = "uni-verse-swipe-hint-shown";
 
@@ -37,6 +38,8 @@ export default function ReaderPage() {
   const [showSwipeIndicator, setShowSwipeIndicator] = useState(false);
   const [autoScrollActive, setAutoScrollActive] = useState(false);
   const [showChapterPrompt, setShowChapterPrompt] = useState(false);
+  const [pageComments, setPageComments] = useState<PageComment[]>([]);
+  const [viewer, setViewer] = useState<{ avatarUrl: string | null; username: string | null; name: string | null } | null>(null);
   const toolbarTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swipeIndicatorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartX = useRef(0);
@@ -66,6 +69,16 @@ export default function ReaderPage() {
       .then((manga) => setMangaDetails({ title: manga.title, cover: manga.cover }))
       .catch(() => {});
   }, [providerId, mangaId]);
+
+  useEffect(() => {
+    if (pages.length === 0) return;
+    ApiClient.get<PageComment[]>(`/api/page-comments/${providerId}/${mangaId}/${chapterId}`)
+      .then((data) => setPageComments(data))
+      .catch(() => setPageComments([]));
+    ApiClient.get<{ avatarUrl: string | null; username: string | null; name: string | null }>("/api/me")
+      .then(setViewer)
+      .catch(() => setViewer(null));
+  }, [providerId, mangaId, chapterId, pages.length]);
 
   const currentChapterIndex = chapters.findIndex((ch) => ch.id === chapterId);
   const currentChapter = currentChapterIndex >= 0 ? chapters[currentChapterIndex] : null;
@@ -411,7 +424,18 @@ export default function ReaderPage() {
         onTouchEnd={handleTouchEnd}
       >
         {isLongStrip ? (
-          <LongStripReader pages={pages} settings={settings} onPageChange={goToPage} />
+          <LongStripReader
+            pages={pages}
+            settings={settings}
+            onPageChange={goToPage}
+            providerId={providerId}
+            mangaId={mangaId}
+            chapterId={chapterId}
+            comments={pageComments}
+            viewer={viewer}
+            onCommentCreated={(comment) => setPageComments((prev) => [...prev, comment])}
+            onCommentDeleted={(commentId) => setPageComments((prev) => prev.filter((c) => c.id !== commentId))}
+          />
         ) : (
           <PagedReader
             key={currentPage}

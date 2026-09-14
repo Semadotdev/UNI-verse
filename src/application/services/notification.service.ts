@@ -78,6 +78,44 @@ export class NotificationService {
     logger.info(`Reply notification created for comment ${parentCommentId}`);
   }
 
+  async onPageCommentCreated(
+    providerId: string,
+    mangaId: string,
+    chapterId: string,
+    actorId: string,
+    _commentId: string
+  ): Promise<void> {
+    // No specific owner to notify for page comments (unlike post comments).
+    // This hook exists to support future features (e.g., notifying chapter followers).
+    logger.info(`Page comment ${_commentId} created for ${providerId}/${mangaId}/${chapterId} by ${actorId}`);
+  }
+
+  async onPageCommentReplied(
+    parentCommentId: string,
+    providerId: string,
+    mangaId: string,
+    chapterId: string,
+    actorId: string,
+    commentId: string
+  ): Promise<void> {
+    const parent = await prisma.pageComment.findUnique({
+      where: { id: parentCommentId },
+      select: { authorId: true },
+    });
+    if (!parent || parent.authorId === actorId) return;
+
+    await prisma.notification.create({
+      data: {
+        userId: parent.authorId,
+        actorId,
+        pageCommentId: commentId,
+        type: 'page_reply',
+        message: `${providerId}/${mangaId}/${chapterId}`,
+      },
+    });
+    logger.info(`Page reply notification created for comment ${parentCommentId}`);
+  }
+
   async onFriendAdded(actorId: string, friendId: string): Promise<void> {
     const existing = await prisma.notification.findFirst({
       where: { userId: friendId, actorId, type: 'friend' },
