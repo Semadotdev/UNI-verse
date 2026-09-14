@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Flag, Trash2, X } from "lucide-react";
 import { ApiClient } from "@/lib/api-client";
 import { useToast } from "@/contexts/ToastContext";
 import { timeAgo } from "@/shared/utils/time";
+import { ConfirmModal } from "@/components/posts/ConfirmModal";
+import { ReportModal } from "@/components/posts/ReportModal";
 import type { PageComment } from "@/domain/entities/page-comment";
 
 interface Viewer {
@@ -61,6 +63,9 @@ export function PageCommentPopover({
   const [replyBody, setReplyBody] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; username: string } | null>(null);
   const [sending, setSending] = useState(false);
+  const [reportTarget, setReportTarget] = useState<PageComment | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PageComment | null>(null);
+  const [localReported, setLocalReported] = useState<Set<string>>(new Set());
   const { addToast } = useToast();
 
   const submitReply = async () => {
@@ -85,11 +90,14 @@ export function PageCommentPopover({
   const remove = async (id: string) => {
     try {
       await ApiClient.delete<{ deleted: boolean }>(`/api/page-comments/comment/${id}`);
+      addToast("Comment deleted", "success");
       onDeleted(id);
     } catch (e) {
       addToast(e instanceof Error ? e.message : "Failed to delete comment", "error");
     }
   };
+
+  const isReported = (comment: PageComment) => comment.reported || localReported.has(comment.id);
 
   const renderComment = (comment: PageComment, indented = false) => (
     <div key={comment.id} className="flex gap-2">
@@ -124,15 +132,32 @@ export function PageCommentPopover({
           </button>
         )}
       </div>
-      {comment.canDelete && (
-        <button
-          onClick={() => remove(comment.id)}
-          className="text-muted hover:text-red-400 transition-colors shrink-0 self-start"
-          title="Delete"
-        >
-          <X className="h-3 w-3" />
-        </button>
-      )}
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {viewer && !comment.isOwn && (
+          isReported(comment) ? (
+            <span className="text-[9px] text-muted uppercase" title="You reported this comment">
+              Reported
+            </span>
+          ) : (
+            <button
+              onClick={() => setReportTarget(comment)}
+              className="text-muted hover:text-amber-400 transition-colors"
+              title="Report comment"
+            >
+              <Flag className="h-3 w-3" />
+            </button>
+          )
+        )}
+        {comment.canDelete && (
+          <button
+            onClick={() => setDeleteTarget(comment)}
+            className="text-muted hover:text-red-400 transition-colors"
+            title="Delete comment"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
     </div>
   );
 
@@ -194,6 +219,29 @@ export function PageCommentPopover({
           </div>
         </div>
       )}
+
+      <ReportModal
+        open={reportTarget !== null}
+        title="Report comment"
+        url={`/api/page-comments/comment/${reportTarget?.id ?? ""}/report`}
+        onClose={() => setReportTarget(null)}
+        onReported={() => {
+          if (reportTarget) {
+            setLocalReported((prev) => new Set(prev).add(reportTarget.id));
+          }
+        }}
+      />
+
+      <ConfirmModal
+        open={deleteTarget !== null}
+        title="Delete comment"
+        message="This will permanently delete the comment."
+        confirmLabel="Delete"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) return remove(deleteTarget.id);
+        }}
+      />
     </div>
   );
 }

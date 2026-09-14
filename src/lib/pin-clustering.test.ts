@@ -8,6 +8,8 @@ function makeComment(overrides: Partial<PageComment> = {}): PageComment {
     body: "hello",
     author: { username: "alice", name: null, avatarUrl: null },
     canDelete: false,
+    isOwn: false,
+    reported: false,
     parentId: null,
     replies: [],
     pageIndex: 0,

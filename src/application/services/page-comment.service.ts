@@ -21,7 +21,7 @@ interface PageCommentWithAuthor {
   replies?: PageCommentWithAuthor[];
 }
 
-function mapComment(c: PageCommentWithAuthor, viewerId: string, isAdmin: boolean): PageComment {
+function mapComment(c: PageCommentWithAuthor, viewerId: string, isAdmin: boolean, reported: boolean): PageComment {
   return {
     id: c.id,
     body: c.body,
@@ -32,6 +32,8 @@ function mapComment(c: PageCommentWithAuthor, viewerId: string, isAdmin: boolean
     pageIndex: c.pageIndex,
     pageY: c.pageY,
     canDelete: c.authorId === viewerId || isAdmin,
+    isOwn: c.authorId === viewerId,
+    reported,
   };
 }
 
@@ -44,7 +46,7 @@ export class PageCommentService {
     chapterId: string,
     viewerId: string
   ): Promise<PageComment[]> {
-    const [comments, viewer] = await Promise.all([
+    const [comments, viewer, reports] = await Promise.all([
       prisma.pageComment.findMany({
         where: { providerId, mangaId, chapterId, parentId: null },
         orderBy: { createdAt: 'asc' },
@@ -57,13 +59,18 @@ export class PageCommentService {
         },
       }),
       prisma.user.findUnique({ where: { id: viewerId }, select: { role: true } }),
+      prisma.pageCommentReport.findMany({
+        where: { reporterId: viewerId },
+        select: { commentId: true },
+      }),
     ]);
 
+    const reportedIds = new Set(reports.map((r) => r.commentId));
     const isAdmin = viewer?.role === 'admin';
     return comments.map((c) => {
       const mapped: PageComment = {
-        ...mapComment(c, viewerId, isAdmin),
-        replies: c.replies.map((r) => mapComment(r, viewerId, isAdmin)),
+        ...mapComment(c, viewerId, isAdmin, reportedIds.has(c.id)),
+        replies: c.replies.map((r) => mapComment(r, viewerId, isAdmin, reportedIds.has(r.id))),
       };
       return mapped;
     });
@@ -131,6 +138,8 @@ export class PageCommentService {
       pageIndex: comment.pageIndex,
       pageY: comment.pageY,
       canDelete: true,
+      isOwn: true,
+      reported: false,
     };
   }
 

@@ -5,6 +5,8 @@ export interface PageComment {
   body: string;
   author: PostAuthor;
   canDelete: boolean;
+  isOwn: boolean;
+  reported: boolean;
   parentId: string | null;
   replies: PageComment[];
   pageIndex: number;

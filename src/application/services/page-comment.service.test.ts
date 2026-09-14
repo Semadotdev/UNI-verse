@@ -11,6 +11,7 @@ vi.mock("@/infrastructure/database/prisma-client", () => ({
     },
     pageCommentReport: {
       upsert: vi.fn(),
+      findMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -56,6 +57,7 @@ describe("PageCommentService.listByChapter", () => {
   let svc: PageCommentService;
 
   beforeEach(() => {
+    vi.mocked(prisma.pageCommentReport.findMany).mockResolvedValue([]);
     svc = new PageCommentService();
   });
 
@@ -83,6 +85,8 @@ describe("PageCommentService.listByChapter", () => {
 
     const result = await svc.listByChapter("mangadex", "m1", "ch1", "u1");
     expect(result[0].canDelete).toBe(true);
+    expect(result[0].isOwn).toBe(true);
+    expect(result[0].reported).toBe(false);
   });
 
   it("marks canDelete true for admin even if not author", async () => {
@@ -93,6 +97,35 @@ describe("PageCommentService.listByChapter", () => {
 
     const result = await svc.listByChapter("mangadex", "m1", "ch1", "u-admin");
     expect(result[0].canDelete).toBe(true);
+  });
+
+  it("marks reported true for comments the viewer reported, on top-level and replies", async () => {
+    const root = commentRow({ id: "r1", authorId: "u-other" });
+    const reply = commentRow({ id: "rp1", parentId: "r1", authorId: "u-other" });
+    vi.mocked(prisma.pageComment.findMany).mockResolvedValue([
+      { ...root, replies: [reply] },
+    ] as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
+    vi.mocked(prisma.pageCommentReport.findMany).mockResolvedValue([
+      { commentId: "rp1" },
+    ] as never);
+
+    const result = await svc.listByChapter("mangadex", "m1", "ch1", "u1");
+
+    expect(result[0].reported).toBe(false);
+    expect(result[0].replies[0].reported).toBe(true);
+  });
+
+  it("keeps reported false when the viewer reported nothing", async () => {
+    vi.mocked(prisma.pageComment.findMany).mockResolvedValue([
+      commentRow({ authorId: "u-other" }),
+    ] as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
+    vi.mocked(prisma.pageCommentReport.findMany).mockResolvedValue([] as never);
+
+    const result = await svc.listByChapter("mangadex", "m1", "ch1", "u1");
+    expect(result[0].reported).toBe(false);
+    expect(result[0].isOwn).toBe(false);
   });
 });
 
@@ -119,6 +152,8 @@ describe("PageCommentService.create", () => {
     expect(createCall.data.authorId).toBe("u1");
     expect(result.id).toBe("c1");
     expect(result.canDelete).toBe(true);
+    expect(result.isOwn).toBe(true);
+    expect(result.reported).toBe(false);
   });
 
   it("fires page comment notification on create", async () => {

@@ -10,9 +10,10 @@ interface ReportModalProps {
   title: string;
   url: string;
   onClose: () => void;
+  onReported?: () => void;
 }
 
-export function ReportModal({ open, title, url, onClose }: ReportModalProps) {
+export function ReportModal({ open, title, url, onClose, onReported }: ReportModalProps) {
   const [reason, setReason] = useState("");
   const [sending, setSending] = useState(false);
   const { addToast } = useToast();
@@ -24,6 +25,7 @@ export function ReportModal({ open, title, url, onClose }: ReportModalProps) {
       await ApiClient.post<{ reported: boolean }>(url, { reason: reason.trim() || undefined });
       addToast("Reported", "success");
       setReason("");
+      onReported?.();
       onClose();
     } catch (e) {
       addToast(e instanceof Error ? e.message : "Failed to report", "error");
