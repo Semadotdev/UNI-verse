@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card } from "@/components/ui/Card";
 import {
   MANUAL_SECTIONS,
   type ManualSection,
@@ -21,7 +20,7 @@ function ManualSectionCard({
 }) {
   const Icon = section.icon;
   return (
-    <Card className="p-0 overflow-hidden">
+    <div className="rounded-xl border border-zinc-800 bg-zinc-900 overflow-hidden">
       <button
         type="button"
         aria-expanded={open}
@@ -86,7 +85,7 @@ function ManualSectionCard({
           </ol>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
