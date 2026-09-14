@@ -19,23 +19,25 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  library         Library[]
-  folders         Folder[]
-  history         ReadingHistory[]
-  readChapters    ReadChapter[]
-  settings        UserSettings?
-  mangaSettings   MangaSettings[]
-  role            String           @default("user")
-  posts           Post[]
-  likes           Like[]
-  comments        Comment[]
-  postReports     PostReport[]
-  commentReports  CommentReport[]
-  friends         Friend[]         @relation("Friendships")
-  friendOf        Friend[]         @relation("FriendOf")
-  notifications   Notification[]   @relation("NotificationsReceived")
-  sentActivity    Notification[]   @relation("NotificationsSent")
-  purchasedThemes PurchasedTheme[]
+  library            Library[]
+  folders            Folder[]
+  history            ReadingHistory[]
+  readChapters       ReadChapter[]
+  settings           UserSettings?
+  mangaSettings      MangaSettings[]
+  role               String              @default("user")
+  posts              Post[]
+  likes              Like[]
+  comments           Comment[]
+  postReports        PostReport[]
+  commentReports     CommentReport[]
+  pageComments       PageComment[]
+  pageCommentReports PageCommentReport[]
+  friends            Friend[]            @relation("Friendships")
+  friendOf           Friend[]            @relation("FriendOf")
+  notifications      Notification[]      @relation("NotificationsReceived")
+  sentActivity       Notification[]      @relation("NotificationsSent")
+  purchasedThemes    PurchasedTheme[]
 }
 
 model PurchasedTheme {
@@ -323,21 +325,60 @@ model CommentReport {
   @@index([createdAt])
 }
 
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  type      String
-  actorId   String
-  postId    String?
-  commentId String?
-  message   String?
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
+model PageComment {
+  id         String  @id @default(cuid())
+  authorId   String
+  body       String
+  parentId   String?
+  providerId String
+  mangaId    String
+  chapterId  String
+  pageIndex  Int
+  pageY      Float
 
-  user    User     @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
-  actor   User     @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
-  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        PageComment?        @relation("PageCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       PageComment[]       @relation("PageCommentReplies")
+  reports       PageCommentReport[]
+  notifications Notification[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@index([providerId, mangaId, chapterId, pageIndex])
+  @@index([parentId])
+}
+
+model PageCommentReport {
+  id         String   @id @default(cuid())
+  commentId  String
+  reporterId String
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  comment  PageComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reporter User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, reporterId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String
+  actorId       String
+  postId        String?
+  commentId     String?
+  pageCommentId String?
+  message       String?
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user        User         @relation("NotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  actor       User         @relation("NotificationsSent", fields: [actorId], references: [id], onDelete: Cascade)
+  post        Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment     Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  pageComment PageComment? @relation(fields: [pageCommentId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([actorId])
