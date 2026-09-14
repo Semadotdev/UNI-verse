@@ -334,6 +334,7 @@ model PageComment {
   mangaId    String
   chapterId  String
   pageIndex  Int
+  /// Y position of the comment as a 0-1 ratio of the page image height
   pageY      Float
 
   author        User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -344,7 +345,7 @@ model PageComment {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
-  @@index([providerId, mangaId, chapterId, pageIndex])
+  @@index([providerId, mangaId, chapterId, pageIndex, createdAt])
   @@index([parentId])
 }
 
