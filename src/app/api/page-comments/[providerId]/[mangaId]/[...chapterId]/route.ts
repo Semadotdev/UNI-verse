@@ -7,12 +7,12 @@ const pageCommentService = new PageCommentService();
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ providerId: string; mangaId: string; chapterId: string }> }
+  { params }: { params: Promise<{ providerId: string; mangaId: string; chapterId: string[] }> }
 ) {
   try {
     const userId = await getAuthUserId();
     const { providerId, mangaId, chapterId } = await params;
-    const comments = await pageCommentService.listByChapter(providerId, mangaId, chapterId, userId);
+    const comments = await pageCommentService.listByChapter(providerId, mangaId, chapterId.join('/'), userId);
     return NextResponse.json(successResponse(comments));
   } catch (error) {
     return NextResponse.json(
@@ -24,11 +24,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ providerId: string; mangaId: string; chapterId: string }> }
+  { params }: { params: Promise<{ providerId: string; mangaId: string; chapterId: string[] }> }
 ) {
   try {
     const userId = await getAuthUserId();
     const { providerId, mangaId, chapterId } = await params;
+    const joinedChapterId = chapterId.join('/');
     const body = await request.json().catch(() => ({}));
 
     const pageIndex = typeof body.pageIndex === 'number' ? body.pageIndex : 0;
@@ -37,7 +38,7 @@ export async function POST(
     const parentId = typeof body.parentId === 'string' ? body.parentId : undefined;
 
     const comment = await pageCommentService.create(
-      providerId, mangaId, chapterId, pageIndex, pageY, text, userId, parentId
+      providerId, mangaId, joinedChapterId, pageIndex, pageY, text, userId, parentId
     );
     return NextResponse.json(successResponse(comment), { status: 201 });
   } catch (error) {
