@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const helpLinks = [{ href: "/help", label: "Help" }];
+import { useHelpModal } from "@/components/help/HelpModal";
 
 const legalLinks = [
   { href: "/legal/privacy", label: "Privacy Policy" },
@@ -16,6 +15,7 @@ const legalLinks = [
 
 export function Footer() {
   const pathname = usePathname();
+  const { openHelpModal } = useHelpModal();
 
   if (pathname === "/login" || pathname === "/register") return null;
 
@@ -32,15 +32,13 @@ export function Footer() {
           </div>
           <p className="text-xs text-muted">Grace Lights the Way to Every Story.</p>
           <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-            {helpLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-xs text-primary-light font-medium hover:underline transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+            <button
+              type="button"
+              onClick={openHelpModal}
+              className="text-xs text-primary-light font-medium hover:underline transition-colors"
+            >
+              Help
+            </button>
             {legalLinks.map((link) => (
               <Link
                 key={link.href}

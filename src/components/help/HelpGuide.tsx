@@ -13,10 +13,12 @@ function ManualSectionCard({
   section,
   open,
   onToggle,
+  onNavigate,
 }: {
   section: ManualSection;
   open: boolean;
   onToggle: () => void;
+  onNavigate?: () => void;
 }) {
   const Icon = section.icon;
   return (
@@ -74,6 +76,7 @@ function ManualSectionCard({
                   {step.action && (
                     <Link
                       href={step.action.href}
+                      onClick={onNavigate}
                       className="mt-2 inline-flex items-center rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/25"
                     >
                       {step.action.label}
@@ -89,7 +92,7 @@ function ManualSectionCard({
   );
 }
 
-export function HelpGuide() {
+export function HelpGuide({ onNavigate }: { onNavigate?: () => void } = {}) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
@@ -100,6 +103,7 @@ export function HelpGuide() {
           section={section}
           open={openIndex === i}
           onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+          onNavigate={onNavigate}
         />
       ))}
     </div>

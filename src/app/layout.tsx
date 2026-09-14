@@ -8,6 +8,7 @@ import { Providers } from "@/components/Providers";
 import { ThemeApplier } from "@/components/ThemeApplier";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { TourProvider, WelcomeModal, TourOverlay, ALL_STEPS } from "@/components/onboarding";
+import { HelpModalProvider } from "@/components/help/HelpModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -62,11 +63,13 @@ export default function RootLayout({
         <Providers>
           <TourProvider steps={ALL_STEPS}>
             <ThemeApplier />
-            <Navbar />
-            <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
-              {children}
-            </main>
-            <Footer />
+            <HelpModalProvider>
+              <Navbar />
+              <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
+                {children}
+              </main>
+              <Footer />
+            </HelpModalProvider>
             <ToastContainer />
             <WelcomeModal />
             <TourOverlay />

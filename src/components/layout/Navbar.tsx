@@ -14,6 +14,7 @@ import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import { ApiClient } from "@/lib/api-client";
 import { useProvider } from "@/contexts/ProviderContext";
 import { useToast } from "@/contexts/ToastContext";
+import { useHelpModal } from "@/components/help/HelpModal";
 import type { User } from "@supabase/supabase-js";
 
 interface ProviderInfo {
@@ -41,6 +42,7 @@ export function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const { selectedProvider, setSelectedProvider } = useProvider();
   const { addToast } = useToast();
+  const { openHelpModal } = useHelpModal();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [confirmLogout, setConfirmLogout] = useState(false);
@@ -239,9 +241,11 @@ export function Navbar() {
 
         <div className="my-4 border-t border-zinc-800" />
         <p className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">Support</p>
-        <Link
-          href="/help"
-          onClick={() => setMobileMenuOpen(false)}
+        <button
+          onClick={() => {
+            setMobileMenuOpen(false);
+            openHelpModal();
+          }}
           className="flex w-full items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-zinc-300 hover:bg-zinc-800 transition-all"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -250,7 +254,7 @@ export function Navbar() {
             <path d="M12 17h.01" />
           </svg>
           Help Center
-        </Link>
+        </button>
 
         {(deferredPrompt || (isIOS && !isStandalone)) && (
           <>
@@ -459,21 +463,19 @@ export function Navbar() {
           )}
 
           {/* Help */}
-          <Link
-            href="/help"
+          <button
+            type="button"
+            onClick={openHelpModal}
             aria-label="Help Center"
             title="Help Center"
-            className={cn(
-              "relative flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200 shrink-0",
-              pathname === "/help" && "text-primary-light bg-primary/15"
-            )}
+            className="relative flex items-center justify-center w-9 h-9 rounded-lg text-muted hover:text-zinc-200 hover:bg-bg-overlay transition-all duration-200 shrink-0"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <path d="M12 17h.01" />
             </svg>
-          </Link>
+          </button>
 
           {/* Auth button */}
           {user ? (
