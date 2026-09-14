@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Flag, Trash2, X } from "lucide-react";
 import { ApiClient } from "@/lib/api-client";
@@ -220,28 +221,32 @@ export function PageCommentPopover({
         </div>
       )}
 
-      <ReportModal
-        open={reportTarget !== null}
-        title="Report comment"
-        url={`/api/page-comments/comment/${reportTarget?.id ?? ""}/report`}
-        onClose={() => setReportTarget(null)}
-        onReported={() => {
-          if (reportTarget) {
-            setLocalReported((prev) => new Set(prev).add(reportTarget.id));
-          }
-        }}
-      />
+      {reportTarget &&
+        createPortal(
+          <ReportModal
+            open
+            title="Report comment"
+            url={`/api/page-comments/comment/${reportTarget.id}/report`}
+            onClose={() => setReportTarget(null)}
+            onReported={() => {
+              setLocalReported((prev) => new Set(prev).add(reportTarget.id));
+            }}
+          />,
+          document.body
+        )}
 
-      <ConfirmModal
-        open={deleteTarget !== null}
-        title="Delete comment"
-        message="This will permanently delete the comment."
-        confirmLabel="Delete"
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={() => {
-          if (deleteTarget) return remove(deleteTarget.id);
-        }}
-      />
+      {deleteTarget &&
+        createPortal(
+          <ConfirmModal
+            open
+            title="Delete comment"
+            message="This will permanently delete the comment."
+            confirmLabel="Delete"
+            onClose={() => setDeleteTarget(null)}
+            onConfirm={() => remove(deleteTarget.id)}
+          />,
+          document.body
+        )}
     </div>
   );
 }
