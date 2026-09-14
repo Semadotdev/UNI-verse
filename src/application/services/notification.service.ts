@@ -83,11 +83,11 @@ export class NotificationService {
     mangaId: string,
     chapterId: string,
     actorId: string,
-    commentId: string
+    _commentId: string
   ): Promise<void> {
     // No specific owner to notify for page comments (unlike post comments).
     // This hook exists to support future features (e.g., notifying chapter followers).
-    logger.info(`Page comment created for ${providerId}/${mangaId}/${chapterId} by ${actorId}`);
+    logger.info(`Page comment ${_commentId} created for ${providerId}/${mangaId}/${chapterId} by ${actorId}`);
   }
 
   async onPageCommentReplied(
