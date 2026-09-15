@@ -34,16 +34,6 @@ export const MANUAL_SECTIONS: ManualSection[] = [
     blurb: "Create an account and install UNI-verse for the best experience.",
     steps: [
       {
-        title: "Create an account",
-        body: "Register with your email and password to unlock saving manga, commenting, posting, and rewards.",
-        action: { label: "Create account", href: "/register" },
-      },
-      {
-        title: "Sign in",
-        body: "Sign in whenever you return — your library, history, and rewards follow your account on any device.",
-        action: { label: "Sign in", href: "/login" },
-      },
-      {
         title: "Install as an app (PWA)",
         body: "On mobile use \u201cAdd to Home Screen\u201d / \u201cInstall app\u201d. On desktop click the install icon in the address bar. Installed apps launch fullscreen, load faster, and work offline.",
       },
