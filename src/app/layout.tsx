@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { RouteHistoryTracker } from "@/components/layout/RouteHistoryTracker";
 import { ToastContainer } from "@/components/ui/Toast";
 import { Providers } from "@/components/Providers";
 import { ThemeApplier } from "@/components/ThemeApplier";
@@ -64,6 +65,7 @@ export default function RootLayout({
           <TourProvider steps={ALL_STEPS}>
             <ThemeApplier />
             <HelpModalProvider>
+              <RouteHistoryTracker />
               <Navbar />
               <main className="pb-20 pt-4 md:pb-4 md:pt-20 flex-1 flex flex-col">
                 {children}

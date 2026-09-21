@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getAuthUserId();
     const body = await request.json();
-    const { name } = body;
+    const { name, nsfw } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const folder = await libraryService.createFolder(userId, name);
+    const folder = await libraryService.createFolder(userId, name, nsfw);
     return NextResponse.json(successResponse(folder));
   } catch (error) {
     if (error instanceof Error && error.message.includes('Unique constraint')) {

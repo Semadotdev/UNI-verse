@@ -1,13 +1,48 @@
 "use client";
 
-import { useCallback, useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useToast } from "@/contexts/ToastContext";
 import { ApiClient } from "@/lib/api-client";
 import { MangaCard } from "@/components/manga/MangaCard";
 import { MangaGridSkeleton } from "@/components/ui/Skeleton";
 import { Modal } from "@/components/ui/Modal";
+import { Toggle } from "@/components/ui/Toggle";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import type { Manga } from "@/domain/entities/manga";
+
+const SHOW_NSFW_ALL_KEY = "uni-verse-library-nsfw-all";
+
+function subscribeShowNsfwAll(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(SHOW_NSFW_ALL_KEY, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(SHOW_NSFW_ALL_KEY, callback);
+  };
+}
+
+function getShowNsfwAllSnapshot() {
+  try {
+    const saved = localStorage.getItem(SHOW_NSFW_ALL_KEY);
+    return saved === null ? true : JSON.parse(saved) === true;
+  } catch {
+    return true;
+  }
+}
+
+function getShowNsfwAllServerSnapshot() {
+  return true;
+}
+
+function setShowNsfwAllPreference(checked: boolean) {
+  try {
+    localStorage.setItem(SHOW_NSFW_ALL_KEY, JSON.stringify(checked));
+  } catch {
+    // ignore storage failures
+  }
+  window.dispatchEvent(new Event(SHOW_NSFW_ALL_KEY));
+}
 
 export default function LibraryPage() {
   const {
@@ -20,6 +55,7 @@ export default function LibraryPage() {
     createFolder,
     renameFolder,
     deleteFolder,
+    setFolderNsfw,
     refresh,
     refreshFolders,
   } = useLibrary();
@@ -27,14 +63,21 @@ export default function LibraryPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderNsfw, setNewFolderNsfw] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [renameName, setRenameName] = useState("");
-  const [folderActions, setFolderActions] = useState<{ id: string; name: string } | null>(null);
+  const [folderActions, setFolderActions] = useState<{ id: string; name: string; nsfw: boolean } | null>(null);
   const [shareTarget, setShareTarget] = useState<{ id: string; name: string } | null>(null);
   const [shareData, setShareData] = useState<{ token: string; url: string } | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [confirmDeleteFolder, setConfirmDeleteFolder] = useState<{ id: string; name: string } | null>(null);
+  const [nsfwSaving, setNsfwSaving] = useState(false);
+  const showNsfwInAll = useSyncExternalStore(
+    subscribeShowNsfwAll,
+    getShowNsfwAllSnapshot,
+    getShowNsfwAllServerSnapshot
+  );
   const createInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +94,10 @@ export default function LibraryPage() {
     refreshFolders();
   }, [refresh, refreshFolders]);
 
+  const handleShowNsfwInAllChange = (checked: boolean) => {
+    setShowNsfwAllPreference(checked);
+  };
+
   const handleRemove = useCallback(
     (libraryId: string) => {
       setConfirmRemove(libraryId);
@@ -62,8 +109,9 @@ export default function LibraryPage() {
     const name = newFolderName.trim();
     if (!name) return;
     try {
-      await createFolder(name);
+      await createFolder(name, newFolderNsfw);
       setNewFolderName("");
+      setNewFolderNsfw(false);
       setShowCreateModal(false);
     } catch {
       // duplicate name or error
@@ -86,6 +134,23 @@ export default function LibraryPage() {
   const handleDeleteFolder = async (folderId: string) => {
     const folder = folders.find((f) => f.id === folderId);
     setConfirmDeleteFolder({ id: folderId, name: folder?.name ?? "this folder" });
+  };
+
+  const handleFolderNsfwToggle = async () => {
+    if (!folderActions || nsfwSaving) return;
+    const { id, nsfw } = folderActions;
+    const next = !nsfw;
+    setFolderActions((prev) => (prev ? { ...prev, nsfw: next } : prev));
+    setNsfwSaving(true);
+    try {
+      await setFolderNsfw(id, next);
+      addToast(next ? "Folder marked as NSFW" : "Folder marked as SFW", "success");
+    } catch {
+      setFolderActions((prev) => (prev ? { ...prev, nsfw } : prev));
+      addToast("Failed to update folder", "error");
+    } finally {
+      setNsfwSaving(false);
+    }
   };
 
   const openShare = async (folderId: string, name: string) => {
@@ -146,7 +211,15 @@ export default function LibraryPage() {
 
   const totalItems = folders.reduce((sum, f) => sum + f.count, 0);
 
-  const mangaItems: (Manga & { libraryId: string; readProgress: number })[] = library.map((item) => ({
+  const filteredLibrary = selectedFolderId === null && !showNsfwInAll
+    ? library.filter((item) => {
+        if (!item.folderId) return true;
+        const folder = folders.find((f) => f.id === item.folderId);
+        return !folder?.nsfw;
+      })
+    : library;
+
+  const mangaItems: (Manga & { libraryId: string; readProgress: number })[] = filteredLibrary.map((item) => ({
     id: item.mangaId,
     providerId: item.providerId,
     title: item.title,
@@ -167,9 +240,21 @@ export default function LibraryPage() {
     <div className="container mx-auto px-4 md:px-8 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Library</h1>
-        <p className="text-muted text-sm mt-1">
-          {totalItems || library.length} manga in your collection
-        </p>
+        <div className="flex items-center justify-between gap-4 mt-1">
+          <p className="text-muted text-sm">
+            {totalItems || library.length} manga in your collection
+          </p>
+          {selectedFolderId === null && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-800/60 border border-zinc-700/50 shrink-0">
+              <NsfwBadge />
+              <Toggle
+                checked={showNsfwInAll}
+                onChange={handleShowNsfwInAllChange}
+                ariaLabel="Show NSFW content"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Folder tabs */}
@@ -199,7 +284,9 @@ export default function LibraryPage() {
           <div key={folder.id} className="relative whitespace-nowrap">
             <button
               onClick={() => setSelectedFolderId(folder.id)}
-              className={`px-3 py-1.5 pr-7 text-sm rounded-lg transition-colors ${
+              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                folder.nsfw ? "pr-16" : "pr-7"
+              } ${
                 selectedFolderId === folder.id
                   ? "bg-primary text-white"
                   : "bg-surface hover:bg-surface-hover text-muted"
@@ -211,7 +298,7 @@ export default function LibraryPage() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setFolderActions({ id: folder.id, name: folder.name });
+                setFolderActions({ id: folder.id, name: folder.name, nsfw: folder.nsfw });
               }}
               className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors ${
                 selectedFolderId === folder.id
@@ -226,6 +313,7 @@ export default function LibraryPage() {
                 <circle cx="12" cy="19" r="2" />
               </svg>
             </button>
+            {folder.nsfw && <NsfwBadge className="absolute right-7 top-1/2 -translate-y-1/2" />}
           </div>
         ))}
 
@@ -309,6 +397,22 @@ export default function LibraryPage() {
             </svg>
             Share
           </button>
+          <div className="flex items-center gap-3 px-3 py-2.5 text-sm text-zinc-200">
+            <svg className="h-4 w-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            NSFW folder
+            {folderActions?.nsfw && <NsfwBadge />}
+            <Toggle
+              className="ml-auto"
+              checked={folderActions?.nsfw ?? false}
+              disabled={nsfwSaving}
+              onChange={handleFolderNsfwToggle}
+              ariaLabel="Mark folder as NSFW"
+            />
+          </div>
           <button
             onClick={() => {
               if (folderActions) handleDeleteFolder(folderActions.id);
@@ -327,7 +431,7 @@ export default function LibraryPage() {
       {/* Create Folder Modal */}
       <Modal
         open={showCreateModal}
-        onClose={() => { setShowCreateModal(false); setNewFolderName(""); }}
+        onClose={() => { setShowCreateModal(false); setNewFolderName(""); setNewFolderNsfw(false); }}
         title="New Folder"
         size="sm"
         footer={
@@ -355,11 +459,18 @@ export default function LibraryPage() {
           onChange={(e) => setNewFolderName(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleCreateFolder();
-            if (e.key === "Escape") { setShowCreateModal(false); setNewFolderName(""); }
+            if (e.key === "Escape") { setShowCreateModal(false); setNewFolderName(""); setNewFolderNsfw(false); }
           }}
           placeholder="Folder name"
           className="w-full px-3 py-2 text-sm rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-100 outline-none focus:border-primary transition-colors"
         />
+        <label className="flex items-center gap-2 mt-3">
+          <Toggle
+            checked={newFolderNsfw}
+            onChange={setNewFolderNsfw}
+          />
+          <span className="text-xs text-muted">NSFW folder</span>
+        </label>
       </Modal>
 
       {/* Rename Folder Modal */}

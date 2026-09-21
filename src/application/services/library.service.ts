@@ -1,6 +1,5 @@
 import { prisma } from '@/infrastructure/database/prisma-client';
 import { createLogger } from '@/shared/utils/logger';
-import { isNsfwCategories } from '@/domain/constants/nsfw-genres';
 
 const logger = createLogger('LibraryService');
 
@@ -110,9 +109,13 @@ export class LibraryService {
   async getFolders(userId: string) {
     const folders = await prisma.folder.findMany({
       where: { userId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        nsfw: true,
+        createdAt: true,
+        updatedAt: true,
         _count: { select: { items: true } },
-        items: { select: { categories: true } },
       },
       orderBy: { name: 'asc' },
     });
@@ -122,13 +125,25 @@ export class LibraryService {
       count: f._count.items,
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
-      nsfw: f.items.some((item) => isNsfwCategories(item.categories)),
+      nsfw: f.nsfw,
     }));
   }
 
-  async createFolder(userId: string, name: string) {
+  async createFolder(userId: string, name: string, nsfw = false) {
     return prisma.folder.create({
-      data: { userId, name: name.trim() },
+      data: { userId, name: name.trim(), nsfw },
+    });
+  }
+
+  async setFolderNsfw(userId: string, folderId: string, nsfw: boolean) {
+    const folder = await prisma.folder.findFirst({
+      where: { id: folderId, userId },
+    });
+    if (!folder) throw new Error('Folder not found');
+
+    return prisma.folder.update({
+      where: { id: folderId },
+      data: { nsfw },
     });
   }
 

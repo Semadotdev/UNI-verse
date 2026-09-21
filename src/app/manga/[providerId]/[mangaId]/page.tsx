@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useManga } from "@/hooks/use-manga";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useToast } from "@/contexts/ToastContext";
 import { ApiClient } from "@/lib/api-client";
+import { getPreviousRoute } from "@/lib/navigation-history";
 import { FallbackCover } from "@/components/manga/FallbackCover";
 import { Spinner } from "@/components/ui/Spinner";
+import { NsfwBadge } from "@/components/ui/NsfwBadge";
 import type { Manga } from "@/domain/entities/manga";
 
 export default function MangaDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const providerId = params.providerId as string;
   const mangaId = params.mangaId as string;
   const { manga, chapters, loading, error, fetchManga } = useManga();
@@ -29,6 +33,11 @@ export default function MangaDetailPage() {
   const [contextMenu, setContextMenu] = useState<{ chapterId: string; x: number; y: number } | null>(null);
   const folderPickerRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleBack = () => {
+    const previous = getPreviousRoute(pathname);
+    router.push(previous ?? "/");
+  };
 
   useEffect(() => {
     fetchManga(providerId, mangaId);
@@ -197,15 +206,17 @@ export default function MangaDetailPage() {
   return (
     <div className="min-h-screen">
       {/* Back button */}
-      <Link
-        href="/"
+      <button
+        type="button"
+        onClick={handleBack}
+        aria-label="Go back"
         className="fixed top-4 left-4 z-50 h-10 w-10 flex items-center justify-center rounded-full bg-bg-raised/80 border border-border hover:border-primary shadow-lg backdrop-blur-md text-muted hover:text-zinc-100 transition-all duration-200"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="19" y1="12" x2="5" y2="12" />
           <polyline points="12 19 5 12 12 5" />
         </svg>
-      </Link>
+      </button>
 
       {/* Hero backdrop */}
       <div className="relative h-[200px] md:h-[360px] overflow-hidden">
@@ -291,6 +302,7 @@ export default function MangaDetailPage() {
                       </svg>
                     )}
                     {folder.name}
+                    {folder.nsfw && <NsfwBadge />}
                     {libraryItem?.folderId === folder.id && <span className="ml-auto text-xs">✓</span>}
                   </button>
                 ))}
@@ -332,6 +344,7 @@ export default function MangaDetailPage() {
                       </svg>
                     )}
                     {folder.name}
+                    {folder.nsfw && <NsfwBadge />}
                   </button>
                 ))}
               </div>

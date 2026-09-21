@@ -58,10 +58,11 @@ interface LibraryContextType {
   removeFromLibrary: (id: string) => Promise<void>;
   isInLibrary: (providerId: string, mangaId: string) => boolean;
   getLibraryItemId: (providerId: string, mangaId: string) => string | null;
-  createFolder: (name: string) => Promise<Folder>;
+  createFolder: (name: string, nsfw?: boolean) => Promise<Folder>;
   renameFolder: (id: string, name: string) => Promise<void>;
   deleteFolder: (id: string) => Promise<void>;
   moveToFolder: (libraryId: string, folderId: string | null) => Promise<void>;
+  setFolderNsfw: (id: string, nsfw: boolean) => Promise<void>;
   refresh: () => Promise<void>;
   refreshFolders: () => Promise<void>;
   batchAdd: BatchAddState | null;
@@ -170,10 +171,15 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     return item?.id ?? null;
   };
 
-  const createFolder = async (name: string): Promise<Folder> => {
-    const folder = await ApiClient.post<Folder>("/api/library/folders", { name });
+  const createFolder = async (name: string, nsfw?: boolean): Promise<Folder> => {
+    const folder = await ApiClient.post<Folder>("/api/library/folders", { name, nsfw });
     await refreshFolders();
     return folder;
+  };
+
+  const setFolderNsfw = async (id: string, nsfw: boolean) => {
+    await ApiClient.put(`/api/library/folders/${id}`, { nsfw });
+    await refreshFolders();
   };
 
   const renameFolder = async (id: string, name: string) => {
@@ -315,6 +321,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       renameFolder,
       deleteFolder,
       moveToFolder,
+      setFolderNsfw,
       refresh,
       refreshFolders,
       batchAdd,

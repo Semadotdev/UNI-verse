@@ -13,7 +13,12 @@ export async function PUT(
     const userId = await getAuthUserId();
     const { id } = await params;
     const body = await request.json();
-    const { name } = body;
+    const { name, nsfw } = body;
+
+    if (nsfw !== undefined) {
+      await libraryService.setFolderNsfw(userId, id, nsfw);
+      return NextResponse.json(successResponse({ nsfw }));
+    }
 
     if (!name || !name.trim()) {
       return NextResponse.json(

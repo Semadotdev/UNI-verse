@@ -31,10 +31,11 @@ export interface LibraryServiceInterface {
   removeFromLibrary(userId: string, id: string): Promise<void>;
   updateBookmark(userId: string, libraryId: string, chapterId: string, data: Record<string, unknown>): Promise<unknown>;
   getFolders(userId: string): Promise<unknown[]>;
-  createFolder(userId: string, name: string): Promise<unknown>;
+  createFolder(userId: string, name: string, nsfw?: boolean): Promise<unknown>;
   renameFolder(userId: string, folderId: string, name: string): Promise<unknown>;
   deleteFolder(userId: string, folderId: string): Promise<void>;
   moveToFolder(userId: string, libraryId: string, folderId: string | null): Promise<unknown>;
+  setFolderNsfw(userId: string, folderId: string, nsfw: boolean): Promise<void>;
 }
 
 export interface HistoryServiceInterface {
